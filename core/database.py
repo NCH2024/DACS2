@@ -9,6 +9,7 @@ DESCRIPTION:
 VERSION: 1.0.0
 '''
 import mysql.connector
+from core import utils
 
 DB_CONFIG = {
         'host': 'localhost',
@@ -28,6 +29,37 @@ def connect_db():
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         return None
+    
+def login(username, password):
+    """
+    Hàm đăng nhập người dùng.
+    Nhận vào tên người dùng và mật khẩu, trả về chuỗi role nếu đăng nhập thành công, ngược lại False.
+    """
+    # Mã hóa mật khẩu
+    #password = utils.hash_password(password)
+
+    conn = connect_db()
+    if conn is None:
+        return False
+
+    cursor = conn.cursor()
+    query = "SELECT user_id, role FROM users WHERE username = %s AND password = %s"
+    cursor.execute(query, (username, password))
+
+    result = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if result:
+        user_id = result[0]
+        role = result[1]
+        return user_id, role
+    else:
+        return False
+
+def get_username(user_id):
+    pass
 
 
 if __name__ == "__main__":
