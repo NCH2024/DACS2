@@ -8,17 +8,19 @@ DESCRIPTION:
         + Các hàm này sẽ được sử dụng để hỗ trợ cho các model và controller
 VERSION: 1.0.0
 '''
-import hashlib
 import re
 from datetime import datetime
+import bcrypt
 
-def hash_password(password):
-    """Mã hóa password."""
-    return hashlib.sha256(password.encode()).hexdigest()
+def bcrypt_password(password: str) -> str:
+    """Mã hóa password bằng bcrypt."""
+    salt = bcrypt.gensalt(rounds=12)
+    b = bcrypt.hashpw(password.encode(), salt) 
+    return b.decode()  # Trả về chuỗi để lưu trong DB
 
-def check_password(password, hashed):
-    """Kiểm tra password với hash."""
-    return hash_password(password) == hashed
+def check_password(plain_password: str, bcrypt_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode(), bcrypt_password.encode())
+
 
 def format_time(dt):
     """Định dạng thời gian sang chuỗi 'YYYY-MM-DD HH:MM'."""

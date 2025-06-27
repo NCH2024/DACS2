@@ -9,7 +9,7 @@ DESCRIPTION:
 VERSION: 1.0.0
 '''
 import mysql.connector
-from core import utils
+from core.utils import check_password 
 
 DB_CONFIG = {
         'host': 'localhost',
@@ -31,34 +31,23 @@ def connect_db():
         return None
     
 def login(username, password):
-    """
-    Hàm đăng nhập người dùng.
-    Nhận vào tên người dùng và mật khẩu, trả về chuỗi role nếu đăng nhập thành công, ngược lại False.
-    """
-    # Mã hóa mật khẩu
-    #password = utils.hash_password(password)
-
     conn = connect_db()
-    if conn is None:
-        return False
-
     cursor = conn.cursor()
-    query = "SELECT user_id, role FROM users WHERE username = %s AND password = %s"
-    cursor.execute(query, (username, password))
 
+    cursor.execute("SELECT TenDangNhap, MatKhau, VaiTro FROM taikhoan WHERE TenDangNhap = %s", (username,))
     result = cursor.fetchone()
 
-    cursor.close()
-    conn.close()
+    if not result:
+        return False
 
-    if result:
-        user_id = result[0]
-        role = result[1]
+    user_id, bcrypt_password, role = result
+
+    if check_password(password, bcrypt_password):
         return user_id, role
     else:
         return False
 
-def get_username(user_id):
+def get_username(tendangnhap):
     pass
 
 

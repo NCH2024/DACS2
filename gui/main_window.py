@@ -3,6 +3,7 @@ import customtkinter as ctk
 from gui.utils import ImageProcessor
 import tkinter as tk
 import core.database 
+from core.utils import bcrypt_password, check_password
 from gui.dashbroad_lecturer import LecturerDashbroad
 
 class MainWindow(BaseView):
@@ -69,24 +70,20 @@ class MainWindow(BaseView):
         username = self.username_entry.get()
         password = self.password_entry.get()
         # Kiểm tra đăng nhập
-        if not username or not password:
-            self.show_message("Lỗi", "Vui lòng nhập tên đăng nhập và mật khẩu.")
-            return
+        result = core.database.login(username, password)
 
-        if core.database.login(username, password)==False:
+        if result is False:
             self.show_message("Thao tác không thành công!", "Sai mật khẩu hoặc tên tài khoản.\nVUI LÒNG THỬ LẠI!")
-            return
         else:
-            user_id, role = core.database.login(username, password)
-    
-            if role == "user":
-                """Xử lý đăng nhập thành công."""
+            user_id, role = result
+            if role == "giangvien":
                 lecturer = ctk.CTkToplevel(self.master)
                 lecturer_dashbroad = LecturerDashbroad(lecturer, user_id)
                 lecturer_dashbroad.pack(expand=True, fill="both")
-                self.master.withdraw()  
+                self.master.withdraw()
             else:
                 self.show_message("Lỗi", "Đăng nhập thất bại.")
+
         
 
 def runapp():
