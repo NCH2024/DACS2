@@ -48,7 +48,16 @@ def login(username, password):
         return False
 
 def get_username(tendangnhap):
-    pass
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT gv.TenGiangVien FROM taikhoan tk JOIN giangvien gv ON tk.MaGV = gv.MaGV WHERE tk.TenDangNhap = %s;", (tendangnhap,))
+    result = cursor.fetchone()
+
+    if result:
+        return result[0]
+    else :
+        return False
 
 
 if __name__ == "__main__":
@@ -56,5 +65,7 @@ if __name__ == "__main__":
             # Test the database connection
             conn = connect_db() 
             print("Ket noi CSDL thanh cong")
+            ten = get_username("test")
+            print(f"{ten}")
         except Exception as e:
             print(f"Error connecting to the database: {e}")
