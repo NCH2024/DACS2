@@ -30,14 +30,15 @@ class DashbroadView(BaseView):
                                 .to_ctkimage(size=(150, 150))
 
         self.bg_label = ctk.CTkLabel(self.sidebar, image=self.bg_ctkimage, text="")
-        self.bg_label.pack(pady=5, padx=5)
+        self.bg_label.pack(pady=10, padx=5)
         
-        self.btn_logout = self.ButtonTheme(self.sidebar, "Đăng xuất",height=40, width=100, fg_color="red", hover_color="blue", command=self.logout)
-        self.btn_logout.place(relx=0.5, rely=0.9, anchor="center")
+        self.btn_logout = self.ButtonTheme(self.sidebar, "Đăng xuất",font=("Bahnschrift", 12, "normal"),height=30, width=120, fg_color="#73B8E9", hover_color="blue", command=self.logout)
+        self.btn_logout.pack(pady=5, padx=5, anchor="s", fill="y")
         
     def clear_content(self):
         for widget in self.content.winfo_children():
             widget.destroy()
+            
             
     def logout(self):
         self.master.master.deiconify()

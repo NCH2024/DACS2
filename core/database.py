@@ -10,6 +10,9 @@ VERSION: 1.0.0
 '''
 import mysql.connector
 from core.utils import check_password 
+from PIL import Image
+from datetime import datetime, timedelta
+import io
 
 DB_CONFIG = {
         'host': 'localhost',
@@ -60,12 +63,115 @@ def get_username(tendangnhap):
         return False
 
 
-if __name__ == "__main__":
-        try:
-            # Test the database connection
-            conn = connect_db() 
-            print("Ket noi CSDL thanh cong")
-            ten = get_username("test")
-            print(f"{ten}")
-        except Exception as e:
-            print(f"Error connecting to the database: {e}")
+def get_info_lecturer(tendangnhap):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT gv.MaGV, gv.TenGiangVien, gv.SDT, gv.MaKhoa, gv.NamSinh, gv.GhiChu FROM taikhoan tk JOIN giangvien gv ON tk.MaGV = gv.MaGV WHERE tk.TenDangNhap = %s;", (tendangnhap,))
+    result = cursor.fetchone()
+    
+    MaGV, TenGiangVien, SDT, MaKhoa, NamSinh, GhiChu = result
+    if result:
+        return MaGV, TenGiangVien, SDT, MaKhoa, NamSinh, GhiChu
+    else:
+        return False
+    
+
+def get_thongbao():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT thongbao_id, TieuDeThongBao, NoiDung, NgayDang, HinhAnh FROM thongbao order by NgayDang DESC")
+    results = []
+
+    for row in cursor.fetchall():
+        thongbao_id, title, content, ngay_dang, image_blob = row
+        # Chuyển ảnh blob thành PIL Image
+        if image_blob:
+            image = Image.open(io.BytesIO(image_blob))
+        else:
+            image = None
+        results.append((thongbao_id, title, content, ngay_dang, image))
+
+    cursor.close()
+    conn.close()
+    return results
+
+
+
+        
+def get_schedule(tendangnhap):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM View_LichPhanCong WHERE TenDangNhap = %s;", (tendangnhap, ))
+    data = []
+    
+    for row in cursor.fetchall():
+        tendangnhap, tenlop, tenhocphan, hocky, sobuoi = row
+        data.append((tenlop, tenhocphan, hocky, sobuoi))
+        
+    if data:
+        return data
+    else:
+        return False
+    
+def get_classes_of_lecturer(username):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT TenLop 
+        FROM view_lichphancong
+        WHERE TenDangNhap = %s;
+    """, (username,))
+    result = cursor.fetchall()
+    conn.close()
+    return [row[0] for row in result]
+
+def get_subjects_by_class(username, class_name):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT TenHocPhan 
+        FROM view_lichphancong
+        WHERE TenDangNhap = %s AND TenLop = %s;
+    """, (username, class_name))
+    result = cursor.fetchall()
+    conn.close()
+    return [row[0] for row in result]
+
+
+def get_schedule_by_week(class_name, subject_name, week_offset=0):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    today = datetime.today()
+    start_of_week = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+    end_of_week = start_of_week + timedelta(days=6)
+
+    cursor.execute("""
+        SELECT TenLop, TenHocPhan, MaBuoiHoc, NgayHoc, Thu, GhiChu, MaLoaiDiemDanh, MaLopHocPhan
+        FROM view_lichdiemdanh_lop
+        WHERE TenLop = %s AND TenHocPhan = %s
+            AND NgayHoc BETWEEN %s AND %s
+        ORDER BY NgayHoc ASC;
+
+         """, (class_name, subject_name, start_of_week.date(), end_of_week.date()))
+
+    result = cursor.fetchall()
+    conn.close()
+
+    return result
+
+def get_subject_detail_from_hocphan(subject_name):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT MaHocPhan, TenHocPhan, SoTinChi, TongSoTiet
+        FROM HocPhan
+        WHERE TenHocPhan = %s
+        LIMIT 1
+    """, (subject_name,))
+    row = cursor.fetchone()
+    return row if row else ("", "", "", "")
+
+
+   
+  

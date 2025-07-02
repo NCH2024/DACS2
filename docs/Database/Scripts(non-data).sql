@@ -18,279 +18,249 @@ CREATE SCHEMA IF NOT EXISTS `dacs2` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb
 USE `dacs2` ;
 
 -- -----------------------------------------------------
--- Table `dacs2`.`NGANH`
+-- Table `dacs2`.`bac`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`NGANH` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`NGANH` (
-  `MaNganh` VARCHAR(5) NOT NULL,
-  `TenNganh` VARCHAR(45) NULL,
-  PRIMARY KEY (`MaNganh`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `dacs2`.`NIENKHOA`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`NIENKHOA` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`NIENKHOA` (
-  `MaNienKhoa` INT(3) NOT NULL,
-  `TenNienKhoa` VARCHAR(20) NOT NULL,
-  PRIMARY KEY (`MaNienKhoa`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `dacs2`.`BAC`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`BAC` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`BAC` (
+CREATE TABLE IF NOT EXISTS `dacs2`.`bac` (
   `MaBac` VARCHAR(5) NOT NULL,
   `TenBac` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`MaBac`))
-ENGINE = InnoDB;
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`KHOA`
+-- Table `dacs2`.`loaidiemdanh`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`KHOA` ;
+CREATE TABLE IF NOT EXISTS `dacs2`.`loaidiemdanh` (
+  `MaLoaiDiemDanh` VARCHAR(5) NOT NULL,
+  `TenLoaiDiemDanh` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`MaLoaiDiemDanh`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `dacs2`.`KHOA` (
+
+-- -----------------------------------------------------
+-- Table `dacs2`.`khoa`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dacs2`.`khoa` (
   `MaKhoa` VARCHAR(10) NOT NULL,
   `TenKhoa` VARCHAR(100) NOT NULL,
-  `GhiChu` VARCHAR(255) NULL,
+  `GhiChu` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`MaKhoa`))
-ENGINE = InnoDB;
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`GIANGVIEN`
+-- Table `dacs2`.`giangvien`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`GIANGVIEN` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`GIANGVIEN` (
-  `MaGV` INT(10) NOT NULL,
-  `TenGiangVien` NVARCHAR(100) NOT NULL,
-  `SDT` INT(11) NULL,
-  `MaKhoa` VARCHAR(10) NOT NULL,
-  `NamSinh` DATE NULL,
-  `GhiChu` VARCHAR(100) NULL,
+CREATE TABLE IF NOT EXISTS `dacs2`.`giangvien` (
+  `MaGV` INT NOT NULL,
+  `TenGiangVien` VARCHAR(100) CHARACTER SET 'utf8mb3' NOT NULL,
+  `SDT` INT NULL DEFAULT NULL,
+  `MaKhoa` VARCHAR(10) NULL DEFAULT NULL,
+  `NamSinh` DATE NULL DEFAULT NULL,
+  `GhiChu` VARCHAR(100) NULL DEFAULT NULL,
   PRIMARY KEY (`MaGV`),
   INDEX `fk_gv_khoa_idx` (`MaKhoa` ASC) VISIBLE,
   CONSTRAINT `fk_gv_khoa`
     FOREIGN KEY (`MaKhoa`)
-    REFERENCES `dacs2`.`KHOA` (`MaKhoa`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    REFERENCES `dacs2`.`khoa` (`MaKhoa`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`LOP`
+-- Table `dacs2`.`hocky`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`LOP` ;
+CREATE TABLE IF NOT EXISTS `dacs2`.`hocky` (
+  `MaHocKy` VARCHAR(4) NOT NULL,
+  `TenHocKy` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`MaHocKy`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `dacs2`.`LOP` (
+
+-- -----------------------------------------------------
+-- Table `dacs2`.`hocphan`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dacs2`.`hocphan` (
+  `MaHocPhan` VARCHAR(30) NOT NULL,
+  `TenHocPhan` VARCHAR(100) NOT NULL,
+  `SoTinChi` INT NOT NULL,
+  `TongSoTiet` INT NOT NULL,
+  PRIMARY KEY (`MaHocPhan`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `dacs2`.`nganh`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dacs2`.`nganh` (
+  `MaNganh` VARCHAR(5) NOT NULL,
+  `TenNganh` VARCHAR(45) NULL DEFAULT NULL,
+  PRIMARY KEY (`MaNganh`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `dacs2`.`nienkhoa`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dacs2`.`nienkhoa` (
+  `MaNienKhoa` INT NOT NULL,
+  `TenNienKhoa` VARCHAR(20) NOT NULL,
+  PRIMARY KEY (`MaNienKhoa`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `dacs2`.`lop`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dacs2`.`lop` (
   `MaBac` VARCHAR(5) NOT NULL,
-  `MaNienKhoa` INT(3) NOT NULL,
+  `MaNienKhoa` INT NOT NULL,
   `MaNganh` VARCHAR(5) NOT NULL,
   `STTLop` VARCHAR(2) NOT NULL,
-  `TenLop` NVARCHAR(100) NOT NULL,
-  `MaGV` INT(10) NULL,
+  `TenLop` VARCHAR(100) CHARACTER SET 'utf8mb3' NOT NULL,
+  `MaGV` INT NULL DEFAULT NULL,
   `MaKhoa` VARCHAR(10) NOT NULL,
   PRIMARY KEY (`MaBac`, `MaNienKhoa`, `MaNganh`, `STTLop`),
   INDEX `fk_lop_nganh_idx` (`MaNganh` ASC) VISIBLE,
   INDEX `fk_lop_nienkhoa_idx` (`MaNienKhoa` ASC) VISIBLE,
   INDEX `fk_lop_khoa_idx` (`MaKhoa` ASC) VISIBLE,
   INDEX `fk_lop_gv_idx` (`MaGV` ASC) VISIBLE,
-  CONSTRAINT `fk_lop_nganh`
-    FOREIGN KEY (`MaNganh`)
-    REFERENCES `dacs2`.`NGANH` (`MaNganh`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_lop_nienkhoa`
-    FOREIGN KEY (`MaNienKhoa`)
-    REFERENCES `dacs2`.`NIENKHOA` (`MaNienKhoa`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_lop_bac`
-    FOREIGN KEY (`MaBac`)
-    REFERENCES `dacs2`.`BAC` (`MaBac`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_lop_khoa`
-    FOREIGN KEY (`MaKhoa`)
-    REFERENCES `dacs2`.`KHOA` (`MaKhoa`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
   CONSTRAINT `fk_lop_gv`
     FOREIGN KEY (`MaGV`)
-    REFERENCES `dacs2`.`GIANGVIEN` (`MaGV`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    REFERENCES `dacs2`.`giangvien` (`MaGV`),
+  CONSTRAINT `fk_lop_khoa`
+    FOREIGN KEY (`MaKhoa`)
+    REFERENCES `dacs2`.`khoa` (`MaKhoa`),
+  CONSTRAINT `fk_lop_nganh`
+    FOREIGN KEY (`MaNganh`)
+    REFERENCES `dacs2`.`nganh` (`MaNganh`),
+  CONSTRAINT `fk_lop_nienkhoa`
+    FOREIGN KEY (`MaNienKhoa`)
+    REFERENCES `dacs2`.`nienkhoa` (`MaNienKhoa`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`SINHVIEN`
+-- Table `dacs2`.`lophocphan`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`SINHVIEN` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`SINHVIEN` (
-  `MaSV` INT(10) NOT NULL,
-  `MaBac` VARCHAR(5) NOT NULL,
-  `MaNienKhoa` INT(3) NOT NULL,
-  `MaNganh` VARCHAR(5) NOT NULL,
-  `STTLop` VARCHAR(2) NOT NULL,
-  `HoTenSV` NVARCHAR(45) NULL,
-  `NamSinh` DATE NULL,
-  `DiaChi` NVARCHAR(45) NULL,
-  `GioiTinh` NVARCHAR(5) NULL,
-  `GhiChu` VARCHAR(100) NULL,
-  PRIMARY KEY (`MaSV`),
-  INDEX `fk_sv_lop_idx` (`MaBac` ASC, `MaNienKhoa` ASC, `MaNganh` ASC, `STTLop` ASC) VISIBLE,
-  CONSTRAINT `fk_sv_lop`
-    FOREIGN KEY (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`)
-    REFERENCES `dacs2`.`LOP` (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `dacs2`.`HOCPHAN`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`HOCPHAN` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`HOCPHAN` (
-  `MaHocPhan` INT(11) NOT NULL,
-  `TenHocPhan` VARCHAR(100) NOT NULL,
-  `SoTinChi` INT NOT NULL,
-  `TongSoTiet` INT NOT NULL,
-  PRIMARY KEY (`MaHocPhan`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `dacs2`.`HOCKY`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`HOCKY` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`HOCKY` (
-  `MaHocKy` VARCHAR(4) NOT NULL,
-  `TenHocKy` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`MaHocKy`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `dacs2`.`LOPHOCPHAN`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`LOPHOCPHAN` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`LOPHOCPHAN` (
+CREATE TABLE IF NOT EXISTS `dacs2`.`lophocphan` (
   `MaLopHocPhan` VARCHAR(20) NOT NULL,
-  `MaHocPhan` INT(11) NOT NULL,
+  `MaHocPhan` VARCHAR(30) NOT NULL,
   `MaBac` VARCHAR(5) NOT NULL,
-  `MaNienKhoa` INT(3) NOT NULL,
+  `MaNienKhoa` INT NOT NULL,
   `MaNganh` VARCHAR(5) NOT NULL,
   `STTLop` VARCHAR(2) NOT NULL,
   `SoBuoi` INT NOT NULL,
   `TietMoiBuoi` INT NOT NULL,
   `MaHocKy` VARCHAR(4) NOT NULL,
-  `MaGV` INT(10) NOT NULL,
+  `MaGV` INT NOT NULL,
   PRIMARY KEY (`MaLopHocPhan`),
   INDEX `fk_lophocphan_lop_full_idx` (`MaBac` ASC, `MaNienKhoa` ASC, `MaNganh` ASC, `STTLop` ASC) VISIBLE,
   INDEX `fk_lophocphan_gv_idx` (`MaGV` ASC) VISIBLE,
-  INDEX `fk_lophocphan_hocphan_idx` (`MaHocPhan` ASC) VISIBLE,
   INDEX `fk_lophocphan_hocky_idx` (`MaHocKy` ASC) VISIBLE,
-  CONSTRAINT `fk_lophocphan_lop_full`
-    FOREIGN KEY (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`)
-    REFERENCES `dacs2`.`LOP` (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+  INDEX `fk_lophocphan_hocphan_idx` (`MaHocPhan` ASC) VISIBLE,
   CONSTRAINT `fk_lophocphan_gv`
     FOREIGN KEY (`MaGV`)
-    REFERENCES `dacs2`.`GIANGVIEN` (`MaGV`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_lophocphan_hocphan`
-    FOREIGN KEY (`MaHocPhan`)
-    REFERENCES `dacs2`.`HOCPHAN` (`MaHocPhan`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    REFERENCES `dacs2`.`giangvien` (`MaGV`),
   CONSTRAINT `fk_lophocphan_hocky`
     FOREIGN KEY (`MaHocKy`)
-    REFERENCES `dacs2`.`HOCKY` (`MaHocKy`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    REFERENCES `dacs2`.`hocky` (`MaHocKy`),
+  CONSTRAINT `fk_lophocphan_hocphan`
+    FOREIGN KEY (`MaHocPhan`)
+    REFERENCES `dacs2`.`hocphan` (`MaHocPhan`),
+  CONSTRAINT `fk_lophocphan_lop_full`
+    FOREIGN KEY (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`)
+    REFERENCES `dacs2`.`lop` (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`LOAIDIEMDANH`
+-- Table `dacs2`.`buoihoc`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`LOAIDIEMDANH` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`LOAIDIEMDANH` (
-  `MaLoaiDiemDanh` VARCHAR(5) NOT NULL,
-  `TenLoaiDiemDanh` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`MaLoaiDiemDanh`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `dacs2`.`BUOIHOC`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`BUOIHOC` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`BUOIHOC` (
+CREATE TABLE IF NOT EXISTS `dacs2`.`buoihoc` (
   `MaBuoiHoc` INT NOT NULL AUTO_INCREMENT,
   `MaLopHocPhan` VARCHAR(20) NOT NULL,
   `ThuTuBuoi` INT NOT NULL,
   `NgayHoc` DATE NOT NULL,
   `MaLoaiDiemDanh` VARCHAR(5) NOT NULL,
-  `GhiChu` VARCHAR(255) NULL,
+  `GhiChu` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`MaBuoiHoc`),
   INDEX `fk_buoihoc_lophocphan_idx` (`MaLopHocPhan` ASC) VISIBLE,
   INDEX `fk_buoihoc_loaidiemdanh_idx` (`MaLoaiDiemDanh` ASC) VISIBLE,
-  CONSTRAINT `fk_buoihoc_lophocphan`
-    FOREIGN KEY (`MaLopHocPhan`)
-    REFERENCES `dacs2`.`LOPHOCPHAN` (`MaLopHocPhan`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
   CONSTRAINT `fk_buoihoc_loaidiemdanh`
     FOREIGN KEY (`MaLoaiDiemDanh`)
-    REFERENCES `dacs2`.`LOAIDIEMDANH` (`MaLoaiDiemDanh`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    REFERENCES `dacs2`.`loaidiemdanh` (`MaLoaiDiemDanh`),
+  CONSTRAINT `fk_buoihoc_lophocphan`
+    FOREIGN KEY (`MaLopHocPhan`)
+    REFERENCES `dacs2`.`lophocphan` (`MaLopHocPhan`))
+ENGINE = InnoDB
+AUTO_INCREMENT = 3
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`TRANGTHAIDIEMDANH`
+-- Table `dacs2`.`sinhvien`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`TRANGTHAIDIEMDANH` ;
+CREATE TABLE IF NOT EXISTS `dacs2`.`sinhvien` (
+  `MaSV` INT NOT NULL,
+  `MaBac` VARCHAR(5) NOT NULL,
+  `MaNienKhoa` INT NOT NULL,
+  `MaNganh` VARCHAR(5) NOT NULL,
+  `STTLop` VARCHAR(2) NOT NULL,
+  `HoTenSV` VARCHAR(45) CHARACTER SET 'utf8mb3' NULL DEFAULT NULL,
+  `NamSinh` DATE NULL DEFAULT NULL,
+  `DiaChi` VARCHAR(45) CHARACTER SET 'utf8mb3' NULL DEFAULT NULL,
+  `GioiTinh` VARCHAR(5) CHARACTER SET 'utf8mb3' NULL DEFAULT NULL,
+  `GhiChu` VARCHAR(100) NULL DEFAULT NULL,
+  PRIMARY KEY (`MaSV`),
+  INDEX `fk_sv_lop_idx` (`MaBac` ASC, `MaNienKhoa` ASC, `MaNganh` ASC, `STTLop` ASC) VISIBLE,
+  CONSTRAINT `fk_sv_lop`
+    FOREIGN KEY (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`)
+    REFERENCES `dacs2`.`lop` (`MaBac` , `MaNienKhoa` , `MaNganh` , `STTLop`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `dacs2`.`TRANGTHAIDIEMDANH` (
+
+-- -----------------------------------------------------
+-- Table `dacs2`.`trangthaidiemdanh`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dacs2`.`trangthaidiemdanh` (
   `MaTrangThai` VARCHAR(3) NOT NULL,
   `TenTrangThai` VARCHAR(45) NOT NULL,
-  `GhiChu` NVARCHAR(255) NULL,
+  `GhiChu` VARCHAR(255) CHARACTER SET 'utf8mb3' NULL DEFAULT NULL,
   PRIMARY KEY (`MaTrangThai`))
-ENGINE = InnoDB;
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`DIEMDANHSV`
+-- Table `dacs2`.`diemdanhsv`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`DIEMDANHSV` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`DIEMDANHSV` (
+CREATE TABLE IF NOT EXISTS `dacs2`.`diemdanhsv` (
   `MaBuoiHoc` INT NOT NULL,
-  `MaSV` INT(10) NOT NULL,
+  `MaSV` INT NOT NULL,
   `MaTrangThai` VARCHAR(3) NOT NULL,
   `ThoiGianGhiNhan` DATETIME NOT NULL,
   PRIMARY KEY (`MaBuoiHoc`, `MaSV`),
@@ -298,41 +268,35 @@ CREATE TABLE IF NOT EXISTS `dacs2`.`DIEMDANHSV` (
   INDEX `fk_diemdanhsv_trangthai_idx` (`MaTrangThai` ASC) VISIBLE,
   CONSTRAINT `fk_diemdanhsv_buoihoc`
     FOREIGN KEY (`MaBuoiHoc`)
-    REFERENCES `dacs2`.`BUOIHOC` (`MaBuoiHoc`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    REFERENCES `dacs2`.`buoihoc` (`MaBuoiHoc`),
   CONSTRAINT `fk_diemdanhsv_sinhvien`
     FOREIGN KEY (`MaSV`)
-    REFERENCES `dacs2`.`SINHVIEN` (`MaSV`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    REFERENCES `dacs2`.`sinhvien` (`MaSV`),
   CONSTRAINT `fk_diemdanhsv_trangthai`
     FOREIGN KEY (`MaTrangThai`)
-    REFERENCES `dacs2`.`TRANGTHAIDIEMDANH` (`MaTrangThai`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    REFERENCES `dacs2`.`trangthaidiemdanh` (`MaTrangThai`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `dacs2`.`TAIKHOAN`
+-- Table `dacs2`.`taikhoan`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `dacs2`.`TAIKHOAN` ;
-
-CREATE TABLE IF NOT EXISTS `dacs2`.`TAIKHOAN` (
+CREATE TABLE IF NOT EXISTS `dacs2`.`taikhoan` (
   `TenDangNhap` VARCHAR(20) NOT NULL,
-  `MatKhau` NVARCHAR(255) NOT NULL,
-  `MaGV` INT(10) NOT NULL,
+  `MatKhau` VARCHAR(255) CHARACTER SET 'utf8mb3' NOT NULL,
+  `MaGV` INT NOT NULL,
   `VaiTro` ENUM('admin', 'giangvien') NOT NULL,
-  `GhiChu` VARCHAR(255) NULL,
+  `GhiChu` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`TenDangNhap`),
   INDEX `fk_taikhoan_giangvien_idx` (`MaGV` ASC) VISIBLE,
   CONSTRAINT `fk_taikhoan_giangvien`
     FOREIGN KEY (`MaGV`)
-    REFERENCES `dacs2`.`GIANGVIEN` (`MaGV`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    REFERENCES `dacs2`.`giangvien` (`MaGV`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;

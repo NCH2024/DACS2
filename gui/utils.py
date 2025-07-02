@@ -2,11 +2,16 @@ from PIL import Image
 import customtkinter as ctk
 from PIL import Image
 import os
+from io import BytesIO
 
 class ImageProcessor:
-    def __init__(self, image_path):
-        self.image_path = image_path
-        self.image = Image.open(image_path)
+    def __init__(self, image_input):
+        if isinstance(image_input, Image.Image):
+            self.image = image_input
+        elif isinstance(image_input, bytes):
+            self.image = Image.open(BytesIO(image_input))
+        else:
+            self.image = Image.open(image_input)
 
     def crop_to_aspect(self, target_width, target_height):
         orig_width, orig_height = self.image.size
@@ -14,14 +19,12 @@ class ImageProcessor:
         orig_ratio = orig_width / orig_height
 
         if orig_ratio > target_ratio:
-            # Cắt hai bên
             new_width = int(orig_height * target_ratio)
             left = (orig_width - new_width) // 2
             right = left + new_width
             top = 0
             bottom = orig_height
         else:
-            # Cắt trên dưới
             new_height = int(orig_width / target_ratio)
             top = (orig_height - new_height) // 2
             bottom = top + new_height
@@ -53,7 +56,7 @@ class ImageProcessor:
 
     def get_pil_image(self):
         return self.image
-    
+
 
 class ImageSlideshow(ctk.CTkFrame):
     def __init__(self, master, image_folder, size=(500, 300), delay=3000, *args, **kwargs):
@@ -110,3 +113,190 @@ class ImageSlideshow(ctk.CTkFrame):
     def play_slideshow(self):
         self.next_image()
         self.after(self.delay, self.play_slideshow)
+        
+        
+class WigdetFrame(ctk.CTkFrame):
+    def __init__(
+        self,
+        master,
+        width=None,
+        height=None,
+        radius=20,
+        widget_color="#2DFCB0",
+        row=0,
+        column=0,
+        rowspan=1,
+        columnspan=1,
+        sticky="n",  # mặc định canh trên
+        padx=10,
+        pady=10,
+        grid_propagate=True,
+        **kwargs
+    ):
+        super().__init__(master, width=width, height=height, corner_radius=radius, fg_color=widget_color, **kwargs)
+
+        self.grid(row=row, column=column, rowspan=rowspan, columnspan=columnspan, sticky=sticky, padx=padx, pady=pady)
+        self.grid_propagate(grid_propagate) 
+
+
+class LabelCustom(ctk.CTkFrame):
+    def __init__(
+        self,
+        master,
+        text,
+        value=None,
+        text_color="#00224E",
+        value_color="#0412A9",
+        font_family="Bahnschrift",
+        font_size=16,
+        font_weight="bold",
+        value_weight="normal",
+        wraplength=400,
+        row_pad_y=2,
+        pack_pady=1,
+        pack_padx=25,
+        pack_anchor="w",
+        fg_color="#2DFCB0", 
+        **kwargs
+    ):
+        super().__init__(master, fg_color="transparent", **kwargs)
+
+        label_font = (font_family, font_size, font_weight)
+        value_font = (font_family, font_size, value_weight)
+
+        # Label bên trái
+        self.label = ctk.CTkLabel(
+            self,
+            text=text,
+            font=label_font,
+            text_color=text_color,
+            wraplength=wraplength,
+            fg_color="transparent",
+            anchor="w"
+        )
+        self.label.grid(row=0, column=0, sticky="nw", padx=(0, 10), pady=row_pad_y)
+
+        # Nếu có giá trị thì tạo label bên phải
+        if value:
+            self.value = ctk.CTkLabel(
+                self,
+                text=value,
+                font=value_font,
+                text_color=value_color,
+                wraplength=wraplength,
+                fg_color="transparent",
+                justify="left",
+                anchor="w"
+            )
+            self.value.grid(row=0, column=1, sticky="nw", pady=row_pad_y)
+
+        # Gói gọn nguyên frame ra ngoài
+        self.pack(pady=pack_pady, padx=pack_padx, anchor=pack_anchor)
+
+class CustomTable(ctk.CTkFrame):
+    def __init__(self, master, columns, data, 
+                 header_color="#013A63", row_color="#E8F8F5",
+                 header_text_color="white", row_text_color="black",
+                 column_widths=None,
+                 scroll=False,
+                 table_width=600, table_height=300,
+                 **kwargs):
+        
+        # Nếu dùng scroll thì tạo scroll frame chứa bảng
+        container = self
+        if scroll:
+            super().__init__(master, **kwargs)
+            container = ctk.CTkScrollableFrame(self, width=table_width, height=table_height, fg_color="transparent")
+            container.pack(fill="both", expand=True)
+        else:
+            super().__init__(master, width=table_width, height=table_height, **kwargs)
+        
+        self.container = container
+        self.columns = columns
+        self.data = data
+        self.header_color = header_color
+        self.row_color = row_color
+        self.header_text_color = header_text_color
+        self.row_text_color = row_text_color
+        self.column_widths = column_widths or [100] * len(columns)
+
+        self._create_table()
+
+    def _create_table(self):
+        # Header row
+        for col_index, col_name in enumerate(self.columns):
+            label = ctk.CTkLabel(
+                self.container, text=col_name,
+                font=("Bahnschrift", 14, "bold"),
+                text_color=self.header_text_color,
+                fg_color=self.header_color,
+                width=self.column_widths[col_index],
+                height=30,
+                anchor="center"
+            )
+            label.grid(row=0, column=col_index, padx=1, pady=1, sticky="nsew")
+
+        # Data rows
+        for row_index, row_data in enumerate(self.data, start=1):
+            for col_index, cell in enumerate(row_data):
+                label = ctk.CTkLabel(
+                    self.container, text=str(cell),
+                    font=("Bahnschrift", 13),
+                    text_color=self.row_text_color,
+                    fg_color=self.row_color,
+                    width=self.column_widths[col_index],
+                    height=28,
+                    anchor="w"
+                )
+                label.grid(row=row_index, column=col_index, padx=1, pady=1, sticky="nsew")
+
+
+class NotifyCard(ctk.CTkFrame):
+    def __init__(self, master, title, content, ngay_dang, image_pil, on_click=None, **kwargs):
+        super().__init__(master, fg_color="white", corner_radius=15, **kwargs)
+
+        if image_pil:
+            img = ImageProcessor(image_pil).crop_to_aspect(4, 3).to_ctkimage(size=(250, 150))
+        else:
+            img = None
+
+        self.image_label = ctk.CTkLabel(self, image=img, text="", width=200, height=150, corner_radius=0)
+        self.image_label.image = img
+        self.image_label.grid(row=0, column=0, rowspan=3, padx=0, pady=0)
+
+        self.title_label = ctk.CTkLabel(self, text=title, font=("Bahnschrift", 16, "bold"), text_color="#FF2020", wraplength=370)
+        self.title_label.grid(row=0, column=1, sticky="w", padx=20, pady=(10, 0))
+
+        self.date_label = ctk.CTkLabel(self, text=ngay_dang.strftime("%d/%m/%Y %H:%M"), font=("Bahnschrift", 12), text_color="#3E3E3E")
+        self.date_label.grid(row=1, column=1, sticky="w", padx=20, pady=2)
+
+        self.detail_btn = ctk.CTkButton(self, text="Xem chi tiết", command=on_click)
+        self.detail_btn.grid(row=2, column=1, sticky="w", padx=20, pady=(5, 5))
+
+
+
+class NotifyList(ctk.CTkFrame):
+    def __init__(self, master, data, **kwargs):
+        super().__init__(master, fg_color="transparent", **kwargs)
+
+        scroll_frame = ctk.CTkScrollableFrame(self, fg_color="transparent", width=680, height=600)
+        scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        for tb in data:
+            thongbao_id, title, content, ngay_dang, image_pil = tb
+            card = NotifyCard(scroll_frame, title=title, content=content, ngay_dang=ngay_dang, image_pil=image_pil,
+                              on_click=lambda c=content, t=title: self.show_detail(t, c))
+            card.pack(fill="x", padx=5, pady=5)
+            
+    def show_detail(self, title, content):
+        top = ctk.CTkToplevel(self)
+        top.geometry("600x600")
+        top.title(title)
+        top.lift() 
+        top.focus_force()
+        top.attributes("-topmost", True)
+
+        ctk.CTkLabel(top, text=title, font=("Bahnschrift", 16, "bold"), wraplength=300).pack(pady=10)
+        ctk.CTkLabel(top, text=content, font=("Bahnschrift", 14), wraplength=450, justify="left").pack(pady=10)
+        
+
