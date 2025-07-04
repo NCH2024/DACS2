@@ -138,6 +138,70 @@ class WigdetFrame(ctk.CTkFrame):
         self.grid(row=row, column=column, rowspan=rowspan, columnspan=columnspan, sticky=sticky, padx=padx, pady=pady)
         self.grid_propagate(grid_propagate) 
 
+class ButtonTheme(ctk.CTkButton):
+    def __init__(
+        self,
+        master,
+        text,
+        font=("Bahnschrift", 16, "normal"),
+        fg_color="green",
+        hover_color="darkblue",
+        border_color="white",
+        border_width=2,
+        height=40,
+        width=200,
+        command=None,
+        **kwargs
+    ):
+        super().__init__(
+            master=master,
+            text=text,
+            font=font,
+            fg_color=fg_color,
+            hover_color=hover_color,
+            border_color=border_color,
+            border_width=border_width,
+            height=height,
+            width=width,
+            command=command,
+            **kwargs
+        )
+
+import customtkinter as ctk
+
+class ComboboxTheme(ctk.CTkComboBox):
+    def __init__(
+        self,
+        master,
+        values=[],
+        command=None,
+        font=("Bahnschrift", 16, "normal"),
+        fg_color="white",
+        border_color="#022965",
+        border_width=1,
+        button_color="#007F3A",
+        button_hover_color="#005C2D",
+        dropdown_font=("Bahnschrift", 14),
+        text_color="black",
+        **kwargs
+    ):
+        super().__init__(
+            master=master,
+            values=values,
+            font=font,
+            fg_color=fg_color,
+            border_color=border_color,
+            border_width=border_width,
+            button_color=button_color,
+            button_hover_color=button_hover_color,
+            dropdown_font=dropdown_font,
+            text_color=text_color,
+            command=command,
+            **kwargs
+        )
+
+
+
 
 class LabelCustom(ctk.CTkFrame):
     def __init__(

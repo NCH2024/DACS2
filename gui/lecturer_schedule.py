@@ -78,7 +78,7 @@ class LecturerSchedule(ctk.CTkFrame):
                               table_height=150,
                               table_width=485)
         self.tb_schedule.pack(padx=20, pady=10)
-        self.info_SubjectofSchedule = WigdetFrame(self.top_frame, width=500, height=240, widget_color=self.widget_color, row=1, column=2,columnspan=3, padx=10, pady=10, sticky="ne", grid_propagate=False)
+        self.info_SubjectofSchedule = WigdetFrame(self.top_frame, width=500, height=240, widget_color=self.widget_color, row=1, column=3,columnspan=3, padx=10, pady=10, sticky="nsw", grid_propagate=False)
         self.slogan_subject = LabelCustom(self.info_SubjectofSchedule, text="THÔNG TIN HỌC PHẦN TÌM KIẾM: ", font_size=12, pack_padx=10)
         self.title_Subject = LabelCustom(self.info_SubjectofSchedule, text="Học phần: ", value="None", pack_padx=10, pack_pady=2)
         self.code_Subject = LabelCustom(self.info_SubjectofSchedule, text="Mã học phần: ", value="None", pack_padx=10, pack_pady=2)
