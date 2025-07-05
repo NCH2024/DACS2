@@ -215,7 +215,7 @@ class LabelCustom(ctk.CTkFrame):
         font_size=16,
         font_weight="bold",
         value_weight="normal",
-        wraplength=400,
+        wraplength=300,
         row_pad_y=2,
         pack_pady=1,
         pack_padx=25,
@@ -262,32 +262,57 @@ class CustomTable(ctk.CTkFrame):
                  header_color="#013A63", row_color="#E8F8F5",
                  header_text_color="white", row_text_color="black",
                  column_widths=None,
-                 scroll=False,
-                 table_width=600, table_height=300,
+                 scroll=True,
+                 table_width=None, table_height=None,
+                 highlight_columns=None, highlight_color="#FFF2B2",
                  **kwargs):
-        
-        # Nếu dùng scroll thì tạo scroll frame chứa bảng
-        container = self
-        if scroll:
-            super().__init__(master, **kwargs)
-            container = ctk.CTkScrollableFrame(self, width=table_width, height=table_height, fg_color="transparent")
-            container.pack(fill="both", expand=True)
-        else:
-            super().__init__(master, width=table_width, height=table_height, **kwargs)
-        
-        self.container = container
+
+        super().__init__(master, fg_color="transparent", **kwargs)
+
         self.columns = columns
         self.data = data
         self.header_color = header_color
         self.row_color = row_color
         self.header_text_color = header_text_color
         self.row_text_color = row_text_color
-        self.column_widths = column_widths or [100] * len(columns)
+        self.column_widths = column_widths
+        self.scroll = scroll
+        self.table_width = table_width or self.winfo_width() or 600
+        self.table_height = table_height
+        self.highlight_columns = highlight_columns or []  # Danh sách chỉ số cột cần tô màu
+        self.highlight_color = highlight_color
+
+        self.after(100, self._init_render)
+
+    def _init_render(self):
+        self.update_idletasks()
+
+        if self.scroll:
+            self.scrollable_frame = ctk.CTkScrollableFrame(
+                self, fg_color="transparent"
+            )
+            self.scrollable_frame.grid(row=0, column=0, sticky="nsew")
+            self.grid_rowconfigure(0, weight=1)
+            self.grid_columnconfigure(0, weight=1)
+
+            self.scrollable_frame.grid_rowconfigure(0, weight=1)
+            self.scrollable_frame.grid_columnconfigure(0, weight=1)
+
+            self.container = self.scrollable_frame
+        else:
+            self.container = self
+            self.configure(width=self.table_width, height=self.table_height)
 
         self._create_table()
 
     def _create_table(self):
-        # Header row
+        num_cols = len(self.columns)
+
+        if not self.column_widths:
+            col_width = int(self.table_width / num_cols)
+            self.column_widths = [col_width] * num_cols
+
+        # Header
         for col_index, col_name in enumerate(self.columns):
             label = ctk.CTkLabel(
                 self.container, text=col_name,
@@ -300,19 +325,24 @@ class CustomTable(ctk.CTkFrame):
             )
             label.grid(row=0, column=col_index, padx=1, pady=1, sticky="nsew")
 
-        # Data rows
+        # Dữ liệu
         for row_index, row_data in enumerate(self.data, start=1):
             for col_index, cell in enumerate(row_data):
+                bg_color = self.highlight_color if col_index in self.highlight_columns else self.row_color
                 label = ctk.CTkLabel(
                     self.container, text=str(cell),
                     font=("Bahnschrift", 13),
                     text_color=self.row_text_color,
-                    fg_color=self.row_color,
+                    fg_color=bg_color,
                     width=self.column_widths[col_index],
                     height=28,
                     anchor="w"
                 )
                 label.grid(row=row_index, column=col_index, padx=1, pady=1, sticky="nsew")
+
+        if not self.scroll:
+            for i in range(len(self.columns)):
+                self.container.grid_columnconfigure(i, weight=1)
 
 
 class NotifyCard(ctk.CTkFrame):

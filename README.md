@@ -15,6 +15,8 @@ DACS2 là một dự án nhằm phát triển một hệ thống quản lý dữ
 
 ![alt text](image-3.png)
 
+![alt text](image-4.png)
+
 ## Đóng góp
 
 Chưa có hình thức với dự án này, vui lòng quay lại sau!

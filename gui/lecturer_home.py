@@ -37,7 +37,8 @@ class LecturerHome(ctk.CTkFrame):
         self.title_widget.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="nw")
 
         # Widget chứa thông tin giảng viên
-        self.info_lecturer = WF(self, width=400, height=300, widget_color=self.widget_color, row=1, column=0, padx=10, pady=10, sticky="nw")
+        self.info_lecturer = ctk.CTkFrame(self, fg_color=self.widget_color)
+        self.info_lecturer.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
         '''Widget con của info_lecturer'''
         self.slogan = LBL(self.info_lecturer, "THÔNG TIN GIẢNG VIÊN", font_size=12, font_weight="bold", text_color="#011EB1", pack_pady=0, pack_padx=20)
 
@@ -55,22 +56,33 @@ class LecturerHome(ctk.CTkFrame):
         self.lbl_notes = LBL(self.info_lecturer, "Thông tin khác: ", value=ghichu, font_weight="italic", value_weight="italic")
 
         # Widget xem lịch nhanh điểm danh các lớp được phân công
-        self.info_schedule = WF(self, width=500, height=250, widget_color=self.widget_color, row=2, column=0,rowspan=2, padx=10, pady=10, sticky="nw")
+        self.info_schedule = ctk.CTkFrame(self, fg_color=self.widget_color )
+        self.info_schedule.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
         self.slogan = LBL(self.info_schedule, "PHÂN CÔNG ĐIỂM DANH CÁC LỚP", font_size=12, font_weight="bold", text_color="#011EB1", pack_pady=0, pack_padx=20, row_pad_y=0)
         self.slogan_second = LBL(self.info_schedule, "Xem nhanh lịch mà bạn được phân công: ", font_size=13, pack_pady=0, pack_padx=30, row_pad_y=0)
         """Thiết lập bảng hiển thị lịch"""
-        self.tb_schedule = TB(self.info_schedule, 
-                              columns=["LỚP", "HỌC PHẦN", "HỌC KỲ", "SỐ BUỔI"],
-                              column_widths=[100, 200, 80, 70],
-                              data=self.data,
-                              scroll=True,
-                              table_height=300,
-                              table_width=470)
-        self.tb_schedule.pack(padx=20, pady=10)
+        # Tạo frame con dùng grid
+        self.table_wrapper = ctk.CTkFrame(self.info_schedule, fg_color="transparent")
+        self.table_wrapper.pack(padx=20, pady=10, fill="both", expand=True)
+
+        # Thêm bảng vào frame wrapper
+        self.tb_schedule = TB(self.table_wrapper, 
+                            columns=["LỚP", "HỌC PHẦN", "HỌC KỲ", "SỐ BUỔI"],
+                            column_widths=[100, 200, 80, 70],
+                            data=self.data,
+                            scroll=True)
+        self.tb_schedule.grid(row=0, column=0, sticky="nsew")
+
+        # Cấu hình co giãn
+        self.table_wrapper.grid_rowconfigure(0, weight=1)
+        self.table_wrapper.grid_columnconfigure(0, weight=1)
+
+
         
 
         # Widget xem thông báo từ cơ quan - nhà trường
-        self.info_notify = WF(self, width=500, height=850, widget_color=self.widget_color, row=1, column=1, rowspan=3, padx=10, pady=5, sticky="ne", grid_propagate=False)
+        self.info_notify = ctk.CTkFrame(self, fg_color=self.widget_color)
+        self.info_notify.grid(row=1, column=1, rowspan=2, padx=(5,10), pady=10, sticky="nsew")
         self.slogan = LBL(self.info_notify, "THÔNG BÁO", font_size=12, font_weight="bold", text_color="#FF0000", pack_pady=0, pack_padx=20)
         self.slogan_second = LBL(self.info_notify, "Cán bộ giảng viên hãy lưu ý thông báo mới nhất!", font_size=12, pack_pady=0, pack_padx=20, row_pad_y=0)
         DataNotify = Db.get_thongbao()
