@@ -59,7 +59,7 @@ class ImageProcessor:
 
 
 class ImageSlideshow(ctk.CTkFrame):
-    def __init__(self, master, image_folder, size=(500, 300), delay=3000, *args, **kwargs):
+    def __init__(self, master, image_folder, size=(500, 300), delay=2000, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.size = size
         self.delay = delay  # milliseconds giữa các slide
@@ -167,8 +167,6 @@ class ButtonTheme(ctk.CTkButton):
             **kwargs
         )
 
-import customtkinter as ctk
-
 class ComboboxTheme(ctk.CTkComboBox):
     def __init__(
         self,
@@ -199,9 +197,6 @@ class ComboboxTheme(ctk.CTkComboBox):
             command=command,
             **kwargs
         )
-
-
-
 
 class LabelCustom(ctk.CTkFrame):
     def __init__(
@@ -343,8 +338,7 @@ class CustomTable(ctk.CTkFrame):
         if not self.scroll:
             for i in range(len(self.columns)):
                 self.container.grid_columnconfigure(i, weight=1)
-
-
+                
 class NotifyCard(ctk.CTkFrame):
     def __init__(self, master, title, content, ngay_dang, image_pil, on_click=None, **kwargs):
         super().__init__(master, fg_color="white", corner_radius=15, **kwargs)
@@ -393,4 +387,78 @@ class NotifyList(ctk.CTkFrame):
         ctk.CTkLabel(top, text=title, font=("Bahnschrift", 16, "bold"), wraplength=300).pack(pady=10)
         ctk.CTkLabel(top, text=content, font=("Bahnschrift", 14), wraplength=450, justify="left").pack(pady=10)
         
+class SliderWithLabel(ctk.CTkFrame):
+    def __init__(self, master, label_text, from_=0, to=1, initial=0.5, command=None, **kwargs):
+        super().__init__(master, fg_color="transparent", **kwargs)
+
+        self.label = ctk.CTkLabel(self, text=label_text, text_color="#060056", font=("Bahnschrift", 14))
+        self.label.grid(row=0, column=0, columnspan=3, sticky="w", padx=10, pady=(5, 0))
+
+        # Các label 0 và 1 ở hai đầu
+        self.min_label = ctk.CTkLabel(self, text=str(from_), font=("Bahnschrift", 13), text_color="green")
+        self.min_label.grid(row=1, column=0, sticky="w", padx=(10, 5))
+
+        # Slider chính
+        self.slider = ctk.CTkSlider(
+            self,
+            from_=from_,
+            to=to,
+            number_of_steps=100,
+            command=self.update_label,
+            height=15,
+            progress_color="#007BC7",
+            button_color="#00358B",
+            button_hover_color="#002448"
+        )
+        self.slider.set(initial)
+        self.slider.grid(row=1, column=1, sticky="ew", padx=5)
+
+        self.max_label = ctk.CTkLabel(self, text=str(to), font=("Bahnschrift", 13), text_color="green")
+        self.max_label.grid(row=1, column=2, sticky="e", padx=(5, 10))
+
+        # Label hiển thị giá trị hiện tại
+        self.value_label = ctk.CTkLabel(self, text=str(initial), text_color="green", font=("Bahnschrift", 13, "bold"))
+        self.value_label.grid(row=2, column=0, columnspan=3, pady=(2, 10))
+
+        self.grid_columnconfigure(1, weight=1)
+
+        self.command = command
+
+    def update_label(self, value):
+        self.value_label.configure(text=f"{value:.2f}")
+        if self.command:
+            self.command(value)
+
+    def get_value(self):
+        return self.slider.get()
+
+    def set_value(self, value):
+        self.slider.set(value)
+
+class SwitchOption(ctk.CTkFrame):
+    def __init__(self, master, text, initial=True, command=None, **kwargs):
+        super().__init__(master, fg_color="transparent", **kwargs)
+        self.label = ctk.CTkLabel(self, text=text, text_color="#310148", font=("Bahnschrift", 14), wraplength=300, anchor="w", justify="left")
+        self.label.pack(side="left", padx=(10, 5), pady=5)
+
+        self.switch = ctk.CTkSwitch(self, text="BẬT" if initial else "TẮT", progress_color="#00D084")
+        self.switch.select() if initial else self.switch.deselect()
+        self.switch.pack(side="right", padx=10)
+
+        def on_toggle():
+            self.switch.configure(text="BẬT" if self.switch.get() else "TẮT")
+            if command:
+                command(self.switch.get())
+
+        self.switch.configure(command=on_toggle)
+
+    def get_value(self):
+        return self.switch.get()
+
+    def set_value(self, value: bool):
+        if value:
+            self.switch.select()
+        else:
+            self.switch.deselect()
+        self.switch.configure(text="BẬT" if value else "TẮT")
 

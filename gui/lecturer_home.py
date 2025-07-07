@@ -64,6 +64,7 @@ class LecturerHome(ctk.CTkFrame):
         # Tạo frame con dùng grid
         self.table_wrapper = ctk.CTkFrame(self.info_schedule, fg_color="transparent")
         self.table_wrapper.pack(padx=20, pady=10, fill="both", expand=True)
+        self.table_wrapper.grid_rowconfigure(0, weight=0)
 
         # Thêm bảng vào frame wrapper
         self.tb_schedule = TB(self.table_wrapper, 

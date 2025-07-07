@@ -1,6 +1,9 @@
 import customtkinter as ctk
 from gui.utils import *
 
+from gui.lecturer_attendance_searchStudent import *
+from gui.lecturer_attendance_setting import *
+
 class LecturerAttendance(ctk.CTkFrame):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
@@ -41,10 +44,10 @@ class LecturerAttendance(ctk.CTkFrame):
         self.widget_menu_advanced_btn_historyAttendance = ButtonTheme(self.widget_menu_advanced, "Xem lịch sử điểm danh")
         self.widget_menu_advanced_btn_historyAttendance.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="ew")
 
-        self.widget_menu_advanced_btn_searchStudent = ButtonTheme(self.widget_menu_advanced, "Tra cứu sinh viên")
+        self.widget_menu_advanced_btn_searchStudent = ButtonTheme(self.widget_menu_advanced, "Tra cứu sinh viên", command=self.show_searchStudent)
         self.widget_menu_advanced_btn_searchStudent.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="ew")
 
-        self.widget_menu_advanced_btn_settingDetect = ButtonTheme(self.widget_menu_advanced, "Cài đặt nhận dạng")
+        self.widget_menu_advanced_btn_settingDetect = ButtonTheme(self.widget_menu_advanced, "Cài đặt nhận dạng", command=self.show_setting)
         self.widget_menu_advanced_btn_settingDetect.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="ew")
 
         # --- Menu sinh trắc học ---
@@ -170,23 +173,23 @@ class LecturerAttendance(ctk.CTkFrame):
         self.btn_attendance.grid(row=1, column=1, rowspan=3, padx=10, pady=5, sticky="e")
 
         # === KHUNG PHẢI - DANH SÁCH SINH VIÊN ===
-        self.widget_list_attendance = ctk.CTkFrame(self, fg_color="white")
+        self.widget_list_attendance = ctk.CTkFrame(self, fg_color="white", border_color=self.widget_color, border_width=2)
         self.widget_list_attendance.grid(row=2, column=1, pady=(0,5), padx=5, sticky="nsew")
         self.widget_list_attendance.grid_columnconfigure((0,1), weight=1)
         self.widget_list_attendance.grid_rowconfigure(1, weight=1)
 
         self.widget_list_attendance_title = LabelCustom(self.widget_list_attendance, "DANH SÁCH SINH VIÊN ĐIỂM DANH", font_size=12)
-        self.widget_list_attendance_title.grid(row=0, column=0, padx=10, pady=0, sticky="nw")
+        self.widget_list_attendance_title.grid(row=0, column=0, padx=10, pady=3, sticky="nw")
         
         self.widget_list_attendance_table = ctk.CTkFrame(self.widget_list_attendance, fg_color="transparent")
         self.widget_list_attendance_table.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nwse")
-        self.widget_list_attendance_table.grid_rowconfigure(0, weight=1)
+        self.widget_list_attendance_table.grid_rowconfigure(0, weight=0)
         self.widget_list_attendance_table.grid_columnconfigure(0, weight=1)
 
         
         self.table = CustomTable(master=self.widget_list_attendance_table, columns=["Họ Tên Sinh Viên", "Thời gian điểm danh", "Trạng thái", "Lớp", "Năm Sinh", "Giới tính", "Ghi Chú"],
                                  column_widths=[220, 130, 130, 100, 100, 100, 200],
-                                 data=[["Nguyễn Chí Thanh", "05/07/2025", "Có mặt", "22TINTT", "2004", "Nam", None]],
+                                 data=[[None, None, None, None, None, None, None]],
                                 scroll=True,
                                 highlight_columns=[1, 2],
                                 highlight_color="#F2BEEF"
@@ -198,3 +201,12 @@ class LecturerAttendance(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=0)
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(1, weight=1)
+        
+        
+    # === CÁC HÀM CHỨC NĂNG NÚT ===
+    def show_searchStudent(self):
+        LecturerAttendance_SearchStudent.show_window(parent=self)
+        
+    def show_setting(self):
+        LecturerAttendance_Setting.show_window(parent=self)
+

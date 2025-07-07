@@ -11,7 +11,7 @@ def run_setting_window():
     root = ctk.CTk()
     root.withdraw()  # ẩn gốc
 
-    LecturerAttendance_SearchStudent.show_window(parent=root)
+    LecturerAttendance_Setting.show_window(parent=root)
 
     root.mainloop()
 

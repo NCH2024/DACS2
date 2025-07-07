@@ -90,5 +90,20 @@ def runapp():
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("green")
     root = ctk.CTk()
+
+    # Ẩn cửa sổ trước
+    root.withdraw()
+
     app = MainWindow(master=root)
+
+    #hiện lại và ép focus
+    def show_window():
+        root.deiconify()
+        root.lift()
+        root.focus_force()
+        root.attributes('-topmost', True)
+        root.after(500, lambda: root.attributes('-topmost', False))
+
+    root.after(200, show_window)
+
     root.mainloop()
