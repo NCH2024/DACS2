@@ -5,7 +5,7 @@ from core.models import SinhVien
 import core.database as Db
 from core.utils import *
 
-class LecturerAttendance_SearchStudent(ctk.CTkFrame):
+class WidgetTranningFace(ctk.CTkFrame):
     def __init__(self, master=None, username=None, **kwargs):
         super().__init__(master, **kwargs)
         self.username = username 
@@ -24,7 +24,7 @@ class LecturerAttendance_SearchStudent(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=1)     # cho phép dãn chiều cao nội dung
 
         # === TIÊU ĐỀ ===
-        self.txt_title = LabelCustom(self, "Dashboard > Điểm danh sinh viên > Tra cứu sinh viên",
+        self.txt_title = LabelCustom(self, "Dashboard > Điểm danh sinh viên > Đào tạo dữ liệu khuôn mặt",
                                      wraplength=600, font_size=16, text_color="#05243F")
         self.txt_title.grid(row=0, column=0, columnspan=2, padx=15, pady=(10, 5), sticky="nw")
 
@@ -84,44 +84,14 @@ class LecturerAttendance_SearchStudent(ctk.CTkFrame):
 
         self.widget_aboutAttendance_title = LabelCustom(
             self.widget_aboutAttendance,
-            "THÔNG TIN ĐIỂM DANH",
+            "THÔNG TIN DỮ LIỆU KHUÔN MẶT",
             font_size=12,
             text_color=self.txt_color_title
         )
         self.widget_aboutAttendance_title.pack(anchor="w", padx=5, pady=(5, 2))
-
-        # --- GOM NHÓM KHUNG THÔNG TIN ---
-        frame_left_info = ctk.CTkFrame(self.widget_aboutAttendance, fg_color="transparent")
-        frame_right_info = ctk.CTkFrame(self.widget_aboutAttendance, fg_color="transparent")
-        frame_left_info.pack(side="left", padx=(5, 0), pady=0)
-        frame_right_info.pack(side="left", padx=(0, 5), pady=0)
-
-        # === BÊN TRÁI: Học phần, Ngày, Buổi ===
-        self.widget_aboutAttendance_subject = LabelCustom(frame_left_info, "Học phần:", value="---", font_size=14, wraplength=150)
-        self.widget_aboutAttendance_subject.pack(anchor="w", pady=(0, 1))
-        self.widget_aboutAttendance_date = LabelCustom(frame_left_info, "Ngày:", value="---", font_size=14, wraplength=150)
-        self.widget_aboutAttendance_date.pack(anchor="w", pady=(0, 1))
-        self.widget_aboutAttendance_session = LabelCustom(frame_left_info, "Buổi:", value="---", font_size=14, wraplength=150)
-        self.widget_aboutAttendance_session.pack(anchor="w", pady=(0, 1))
-
-        # === BÊN PHẢI: Thời gian điểm danh, Trạng thái ===
-        self.widget_aboutAttendance_timeAttendance = LabelCustom(
-            frame_right_info,
-            "Thời gian điểm danh:",
-            value="None",
-            text_color="red",
-            font_size=14, wraplength=150
-        )
-        self.widget_aboutAttendance_timeAttendance.pack(anchor="w", pady=(0, 1))
-
-        self.widget_aboutAttendance_state = LabelCustom(
-            frame_right_info,
-            "Trạng thái:",
-            value="None",
-            text_color="red",
-            font_size=14, wraplength=150
-        )
-        self.widget_aboutAttendance_state.pack(anchor="w", pady=(0, 1))
+        
+        self.widget_aboutAttendance_content1 = LabelCustom(self.widget_aboutAttendance, "DỮ LIỆU KHUÔN MẶT: ", value="---")
+        self.widget_aboutAttendance_content2 = LabelCustom(self.widget_aboutAttendance, "THỜI GIAN LƯU TRỮ: ", value="---")
 
 
         # === KHUNG PHẢI ===
@@ -131,7 +101,7 @@ class LecturerAttendance_SearchStudent(ctk.CTkFrame):
         self.widget_search.grid_columnconfigure((0,1), weight=1)
         self.widget_search.grid_rowconfigure(0, weight=0)
         
-        self.widget_search_title = LabelCustom(self.widget_search, "TÌM KIẾM", font_size=12, text_color=self.txt_color_title)
+        self.widget_search_title = LabelCustom(self.widget_search, "ĐÀO TẠO NHẬN DẠNG", font_size=12, text_color=self.txt_color_title)
         self.widget_search_title.grid(row=0, column=0, columnspan=2, padx=5, pady=0, sticky="nw")
         
         self.ent_IDStudent = ctk.CTkEntry(self.widget_search, placeholder_text="Nhập vào MSSV", 
@@ -139,125 +109,33 @@ class LecturerAttendance_SearchStudent(ctk.CTkFrame):
         self.ent_IDStudent.grid(row=1, column=0, padx=(10,0), pady=0, sticky="nw")
         
         # Kết nối nút Tìm kiếm nhanh với chức năng tra cứu sinh viên
-        self.btn_searchQuickly = ButtonTheme(self.widget_search, "Tìm kiếm nhanh", width=100, command=self.search_student)
+        self.btn_searchQuickly = ButtonTheme(self.widget_search, "Tìm kiếm sinh viên", width=100, command=self.search_student)
         self.btn_searchQuickly.grid(row=1, column=1, padx=(0,10), pady=0, sticky="ne")
         
-        self.widget_search_title = LabelCustom(self.widget_search, "TÌM KIẾM THÔNG TIN ĐIỂM DANH", font_size=12, text_color=self.txt_color_title)
-        self.widget_search_title.grid(row=2, column=0, columnspan=2, padx=5, pady=(10,2), sticky="nw")
+        self.widget_search_title = LabelCustom(self.widget_search, "Chọn chế độ đào tạo: ", font_size=12, text_color=self.txt_color_title)
+        self.widget_search_title.grid(row=2, column=0, columnspan=2, padx=10, pady=(20, 0), sticky="nw")
         
-        self.cbx_subject = ComboboxTheme(self.widget_search, values=["None"], command=self.on_subject_selected)
+        self.cbx_subject = ComboboxTheme(self.widget_search, values=["Đào tạo chuyên sâu", "Đào tạo nhanh"])
         self.cbx_subject.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="nwe")
         
-        self.cbx_date = ComboboxTheme(self.widget_search, values=["None"], command=self.on_date_selected)
-        self.cbx_date.grid(row=4, column=0, columnspan=2, padx=10, pady=5, sticky="nwe")
-        
-        self.cbx_session = ComboboxTheme(self.widget_search, values=["None"])
-        self.cbx_session.grid(row=5, column=0, columnspan=2, padx=10, pady=5, sticky="nwe")
-        
-        self.btn_searchAll = ButtonTheme(self.widget_search, "Tìm kiếm điểm danh", width=100, command=self.search_attendance)
-        self.btn_searchAll.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="new")
-        
-        self.note = LabelCustom(self.widget_search, "\nHƯỚNG DẪN:\n\n1. Giảng viên nhập vào ô MSSV và bấm Tìm kiếm nhanh để xem thông tin sinh viên.\n\n2. Nếu muốn xem quá trình điểm danh tại một thời điểm của sinh viên, vui lòng nhập đầy đủ MSSV và chọn các thành phần phù hợp rồi mới bấm Tìm kiếm điểm danh.", font_size=10 , wraplength=300)
-        self.note.grid(row=7, column=0, columnspan=2, padx=10, pady=5, sticky="wse")
+        self.check_setAvarta = SwitchOption(self.widget_search, "Dùng ảnh sau khi đào tạo làm Avatar cho sinh viên\n(Không nên bật nếu SV đã thiết lập avatar!)", wraplenght=300, initial=False, command=self.check_option)
+        self.check_setAvarta.grid(row=4, column=0, columnspan=2, padx=5 , pady=20, sticky="nwe")
 
-        # Khởi tạo combobox động
-        self.init_subjects()
+        
+        self.btn_searchAll = ButtonTheme(self.widget_search, "Đào tạo dữ liệu", width=100)
+        self.btn_searchAll.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="new")
 
     
     # ==== HÀM CHỨC NĂNG ====
     def _fix_none(self, val):
         return "Chưa có dữ liệu" if val is None or (isinstance(val, str) and val.strip() == "") else str(val)
-
-    def init_subjects(self):
-        subjects = Db.get_subjects_of_lecturer(self.username)
-        if subjects:
-            self.cbx_subject.configure(values=subjects)
-            self.cbx_subject.set(subjects[0])
-            self.on_subject_selected(subjects[0])
+    
+    def check_option(self, is_checked=bool):
+        if is_checked:
+            messagebox.showwarning("Cảnh báo!", "Bật tuỳ chọn này sẽ thay đổi ảnh avatar của sinh viên ngay cả khi sinh viên đã tự thiết lập ảnh!")
         else:
-            self.cbx_subject.configure(values=["None"])
-            self.cbx_subject.set("None")
-            self.cbx_date.configure(values=["None"])
-            self.cbx_date.set("None")
-            self.cbx_session.configure(values=["None"])
-            self.cbx_session.set("None")
+            messagebox.showinfo("Thông báo", "Đã tắt tuỳ chọn thành công!")
 
-    def on_subject_selected(self, ten_hocphan):
-        if ten_hocphan == "None":
-            self.cbx_date.configure(values=["None"])
-            self.cbx_date.set("None")
-            self.cbx_session.configure(values=["None"])
-            self.cbx_session.set("None")
-            return
-        dates = Db.get_dates_of_subject(self.username, ten_hocphan)
-        if dates:
-            self.cbx_date.configure(values=dates)
-            self.cbx_date.set(dates[0])
-            self.on_date_selected(dates[0])
-        else:
-            self.cbx_date.configure(values=["None"])
-            self.cbx_date.set("None")
-            self.cbx_session.configure(values=["None"])
-            self.cbx_session.set("None")
-
-    def on_date_selected(self, ngay):
-        ten_hocphan = self.cbx_subject.get()
-        if ngay == "None" or ten_hocphan == "None":
-            self.cbx_session.configure(values=["None"])
-            self.cbx_session.set("None")
-            return
-        
-        self.session_map = Db.get_loai_diem_danh(self.username, ten_hocphan, ngay)
-
-        if self.session_map:
-            self.cbx_session.configure(values=list(self.session_map.keys()))
-            self.cbx_session.set(list(self.session_map.keys())[0])
-        else:
-            self.cbx_session.configure(values=["None"])
-            self.cbx_session.set("None")
-
-
-    def search_attendance(self):
-        self.search_student()
-        maSV = self.ent_IDStudent.get().strip()
-        ten_hocphan = self.cbx_subject.get()
-        ngay = self.cbx_date.get()
-        selected_session_name = self.cbx_session.get()
-        buoi = self.session_map.get(selected_session_name)
-
-        # Kiểm tra đầu vào
-        if not maSV or ten_hocphan == "None" or ngay == "None" or buoi is None:
-            messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập MSSV và chọn đầy đủ học phần, ngày, buổi!")
-            return
-
-
-        # 🛠️ Chuyển định dạng ngày để MySQL hiểu
-        ngay_mysql = convert_to_mysql_date(ngay)
-        if not ngay_mysql:
-            messagebox.showerror("Lỗi ngày tháng", f"Không thể chuyển định dạng ngày: {ngay}")
-            return
-
-        result = Db.get_attendance_of_student(maSV, ten_hocphan, ngay_mysql, buoi)
-        print("🎯 DEBUG result =", result)
-
-        # Hiển thị dữ liệu
-        if result:
-            self.widget_aboutAttendance_subject.value.configure(text=self._fix_none(result[0]))
-            self.widget_aboutAttendance_date.value.configure(text=self._fix_none(result[1]))
-            self.widget_aboutAttendance_session.value.configure(text=self._fix_none(result[2]))
-            self.widget_aboutAttendance_timeAttendance.value.configure(text=self._fix_none(result[3]))
-            self.widget_aboutAttendance_state.value.configure(text=self._fix_none(result[4]))
-        else:
-            self.widget_aboutAttendance_subject.value.configure(text="Không có dữ liệu")
-            self.widget_aboutAttendance_date.value.configure(text="Không có dữ liệu")
-            self.widget_aboutAttendance_session.value.configure(text="Không có dữ liệu")
-            self.widget_aboutAttendance_timeAttendance.value.configure(text="Không có dữ liệu")
-            self.widget_aboutAttendance_state.value.configure(text="Không có dữ liệu")
-                
-
-
-    def _fix_none(self, val):
-        return "Chưa có dữ liệu" if val is None or (isinstance(val, str) and val.strip() == "") else str(val)
     def search_student(self):
         maSV = self.ent_IDStudent.get().strip()
         if not maSV:
@@ -296,13 +174,6 @@ class LecturerAttendance_SearchStudent(ctk.CTkFrame):
         self.txt_Birthday.value.configure(text=self._fix_none(sv.NamSinh))
         self.txt_Notes.value.configure(text=self._fix_none(sv.GhiChu))
 
-    def clear_info(self):
-        for lbl in [
-            self.txt_HoTen, self.txt_Class, self.txt_Birthday, 
-            self.txt_Level, self.txt_SchoolYear, self.txt_Specialized, self.txt_Notes
-        ]:
-            lbl.value.configure(text="")
-
     # ==== CHẾ ĐỘ HIỂN THỊ DẠNG CỬA SỔ ====
     _window_instance = None
 
@@ -310,8 +181,8 @@ class LecturerAttendance_SearchStudent(ctk.CTkFrame):
     def show_window(cls, parent=None, username=None):
         if cls._window_instance is None or not cls._window_instance.winfo_exists():
             top = ctk.CTkToplevel()
-            top.geometry("950x600")
-            top.title("Tra cứu sinh viên")
+            top.geometry("950x500")
+            top.title("Đào tạo dữ liệu khuôn mặt")
             top.configure(fg_color="white")
             if parent:
                 top.transient(parent.winfo_toplevel())
@@ -320,7 +191,7 @@ class LecturerAttendance_SearchStudent(ctk.CTkFrame):
             cls._window_instance = top
 
             # Truyền username vào đây
-            cls(master=top, username=username)
+            cls(master=top)
 
             def on_close():
                 cls._window_instance.destroy()

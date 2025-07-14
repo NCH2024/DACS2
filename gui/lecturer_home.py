@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import core.database as Db
+from core.models import GiangVien
 from gui.utils import WigdetFrame as WF
 from gui.utils import LabelCustom as LBL
 from gui.utils import CustomTable as TB
@@ -14,8 +15,20 @@ class LecturerHome(ctk.CTkFrame):
         self._border_color = "white"
         self._fg_color = "white"
 
-        # Lấy thông tin giảng viên
-        self.info = self.getInfoLecturer(self.username)
+         # Lấy thông tin giảng viên
+        info_tuple = self.getInfoLecturer(self.username)
+        if info_tuple:
+            # Chuẩn hóa: tạo object model từ dữ liệu trả về
+            self.giangvien = GiangVien(
+                MaGV=info_tuple[0],
+                TenGiangVien=info_tuple[1],
+                SDT=info_tuple[2],
+                MaKhoa=info_tuple[3],
+                NamSinh=info_tuple[4],
+                GhiChu=info_tuple[5]
+            )
+        else:
+            self.giangvien = None
         
         # Lấy lịch điểm danh sơ bộ
         self.data = self.getSchedule(self.username)
@@ -43,17 +56,20 @@ class LecturerHome(ctk.CTkFrame):
         self.slogan = LBL(self.info_lecturer, "THÔNG TIN GIẢNG VIÊN", font_size=12, font_weight="bold", text_color="#011EB1", pack_pady=0, pack_padx=20)
 
         # Kiểm tra dữ liệu
-        if self.info:
-            ma_gv, ten_gv, sdt, ma_khoa, namsinh, ghichu = self.info
+        if self.giangvien:
+            self.lbl_name = LBL(self.info_lecturer, "Giảng Viên: ", value=self.giangvien.TenGiangVien, font_weight="bold")
+            self.lbl_id = LBL(self.info_lecturer, "Mã cán bộ: ", value=self.giangvien.MaGV, font_weight="bold")
+            self.lbl_age = LBL(self.info_lecturer, "Năm sinh: ", value=str(self.giangvien.NamSinh), font_weight="bold")
+            self.lbl_numberPhone = LBL(self.info_lecturer, "Số điện thoại: ", value=str(self.giangvien.SDT), font_weight="bold")
+            self.lbl_faculty = LBL(self.info_lecturer, "Khoa: ", value=self.giangvien.MaKhoa, font_weight="bold")
+            self.lbl_notes = LBL(self.info_lecturer, "Thông tin khác: ", value=self.giangvien.GhiChu, font_weight="italic", value_weight="italic")
         else:
-            ma_gv = ten_gv = sdt = ma_khoa = namsinh = ghichu = "Không có dữ liệu"
-
-        self.lbl_name = LBL(self.info_lecturer, "Giảng Viên: ", value=ten_gv, font_weight="bold")
-        self.lbl_id = LBL(self.info_lecturer, "Mã cán bộ: ", value=ma_gv, font_weight="bold")
-        self.lbl_age = LBL(self.info_lecturer, "Năm sinh: ", value=str(namsinh), font_weight="bold")
-        self.lbl_numberPhone = LBL(self.info_lecturer, "Số điện thoại: ", value=str(sdt), font_weight="bold")
-        self.lbl_faculty = LBL(self.info_lecturer, "Khoa: ", value=ma_khoa, font_weight="bold")
-        self.lbl_notes = LBL(self.info_lecturer, "Thông tin khác: ", value=ghichu, font_weight="italic", value_weight="italic")
+            self.lbl_name = LBL(self.info_lecturer, "Giảng Viên: ", value="Không có dữ liệu", font_weight="bold")
+            self.lbl_id = LBL(self.info_lecturer, "Mã cán bộ: ", value="Không có dữ liệu", font_weight="bold")
+            self.lbl_age = LBL(self.info_lecturer, "Năm sinh: ", value="Không có dữ liệu", font_weight="bold")
+            self.lbl_numberPhone = LBL(self.info_lecturer, "Số điện thoại: ", value="Không có dữ liệu", font_weight="bold")
+            self.lbl_faculty = LBL(self.info_lecturer, "Khoa: ", value="Không có dữ liệu", font_weight="bold")
+            self.lbl_notes = LBL(self.info_lecturer, "Thông tin khác: ", value="Không có dữ liệu", font_weight="italic", value_weight="italic")
 
         # Widget xem lịch nhanh điểm danh các lớp được phân công
         self.info_schedule = ctk.CTkFrame(self, fg_color=self.widget_color )

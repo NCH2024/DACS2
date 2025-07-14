@@ -32,3 +32,10 @@ def validate_email(email):
     """Kiểm tra định dạng email đúng chuẩn."""
     pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
     return re.match(pattern, email) is not None
+
+def convert_to_mysql_date(date_str):
+    """Chuyển từ 'DD/MM/YYYY' sang 'YYYY-MM-DD'."""
+    try:
+        return datetime.strptime(date_str, "%d/%m/%Y").strftime("%Y-%m-%d")
+    except ValueError:
+        return None

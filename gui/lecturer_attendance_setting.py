@@ -1,14 +1,14 @@
 import customtkinter as ctk
-from gui.utils import SliderWithLabel, SwitchOption, ButtonTheme, LabelCustom
+from gui.utils import *
 
 class LecturerAttendance_Setting(ctk.CTkFrame):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
-        self.configure(fg_color="white")
+        self.configure(fg_color="transparent")
         self.grid_columnconfigure((0, 1, 2), weight=1)
 
         # Tiêu đề
-        self.title = ctk.CTkLabel(self, text="Dashboard > Điểm danh sinh viên > Cài đặt", font=("Bahnschrift", 14, "bold"))
+        self.title = ctk.CTkLabel(self, text="Dashboard > Cài đặt phần mềm", font=("Bahnschrift", 14, "bold"))
         self.title.grid(row=0, column=0, columnspan=3, padx=10, pady=(20, 5), sticky="w")
 
         # Phân nhóm
@@ -46,9 +46,6 @@ class LecturerAttendance_Setting(ctk.CTkFrame):
         self.save_btn = ButtonTheme(right_buttons, text="LƯU", fg_color="#33F198", width=100, command=self.save_settings)
         self.save_btn.grid(row=0, column=0, padx=(0, 10))
 
-        self.exit_btn = ButtonTheme(right_buttons, text="THOÁT", fg_color="#000F58", width=100, command=self.quit_settings)
-        self.exit_btn.grid(row=0, column=1)
-
     def reset_settings(self):
         self.slider_accuracy.set_value(0.6)
         self.switch_realtime.set_value(True)
@@ -62,36 +59,3 @@ class LecturerAttendance_Setting(ctk.CTkFrame):
         sound = self.switch_sound.get_value()
         print(f"Saved! Accuracy: {acc}, Realtime: {real}, SaveFace: {save}, Sound: {sound}")
 
-    def quit_settings(self):
-        self.master.destroy()
-
-    _window_instance = None
-
-    @classmethod
-    def show_window(cls, parent=None):
-        if cls._window_instance is None or not cls._window_instance.winfo_exists():
-            top = ctk.CTkToplevel()
-            top.geometry("500x500")
-            top.title("Cài đặt")
-            top.configure(fg_color="white")
-
-            if parent:
-                top.transient(parent.winfo_toplevel())
-
-            top.lift()
-            top.focus_force()
-
-            cls._window_instance = top
-
-            frame = cls(master=top)
-            frame.grid(row=0, column=0, sticky="nsew")
-            top.grid_rowconfigure(0, weight=1)
-            top.grid_columnconfigure(0, weight=1)
-
-            def on_close():
-                cls._window_instance.destroy()
-                cls._window_instance = None
-
-            top.protocol("WM_DELETE_WINDOW", on_close)
-        else:
-            cls._window_instance.focus_force()

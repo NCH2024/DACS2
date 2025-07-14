@@ -1,6 +1,15 @@
+'''
+FILE NAME: gui/base_view.py
+CODE BY: Nguyễn Chánh Hiệp 
+DATE: 22/06/2025
+DESCRIPTION:
+        + Đây là lớp cơ sở (base class) cho tất cả các view (cửa sổ/khung) trong ứng dụng.
+        + Cung cấp các chức năng chung như: cấu hình cửa sổ, xử lý sự kiện đóng cửa sổ, và các phương thức tiện ích.
+        + Định nghĩa các phương thức tạo widget (Label, Button) theo một theme thống nhất để tái sử dụng.
+VERSION: 1.0.0
+'''
 import customtkinter as ctk
 from tkinter import messagebox
-from PIL import Image, ImageTk
 
 class BaseView(ctk.CTkFrame):
     def __init__(self, master, 

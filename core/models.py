@@ -1,86 +1,128 @@
-'''
-FILE NAME: core/models.py
-CODE BY: Nguyễn Chánh Hiệp 
-DATE: 17/06/2025
-DESCRIPTION:
-        + Đây là file chứa các model của ứng dụng 
-        + Định nghĩa các đôi tượng
-        + Các model sẽ được sử dụng để lưu trữ dữ liệu và tương tác với cơ sở dữ liệu
-VERSION: 1.0.0
-'''
+"""
+Định nghĩa các model Python tương ứng với các bảng trong schema MySQL.
+Có thể mở rộng/thay đổi để tích hợp với ORM như SQLAlchemy hoặc Django ORM nếu cần.
+"""
+
 from datetime import datetime
+from typing import Optional
 
-class User:
-    '''
-    Mô hình người dùng/Người quản trị hệ thống
-    Attributes:
-        - username: Tên đăng nhập của người dùng
-        - password: Mật khẩu của người dùng
-        - role: Vai trò của người dùng (ví dụ: admin, user)
-        - email: Địa chỉ email của người dùng
-    Methods:
-        - to_dict: Chuyển đổi đối tượng thành từ điển
-    '''
-    def __init__(self, username, password, role, email=None):
-        self.username = username
-        self.password = password
-        self.role = role
-        self.email = email
-        
-    def to_dict(self):
-        return {
-            'username': self.username,
-            'password': self.password,
-            'role': self.role,
-            'email': self.email
-        }
-        
-    class Attendance:
-        '''
-        Mô hình điểm danh
-        Attributes:
-            - user_id: Đối tượng người dùng liên kết với điểm danh
-            - timestamp: lưu dấu thời gian điểm danh
-            - status: Trạng thái điểm danh (ví dụ: có mặt, vắng mặt, có phép, chưa xác định)
-            - class_id: ID của lớp học liên kết với điểm danh
-        Methods:
-            - to_dict: Chuyển đổi đối tượng thành từ điển
-        '''
-        def __init__(self, user_id, timestamp=None, status="Chưa xác định", class_id=None):
-            self.user_id = user_id
-            self.timestamp = timestamp or datetime.now()
-            self.status = status
-            self.class_id = class_id
+class Bac:
+    def __init__(self, MaBac: str, TenBac: str):
+        self.MaBac = MaBac
+        self.TenBac = TenBac
 
-        def to_dict(self):
-            return {
-                'user_id': self.user_id,
-                'timestamp': self.timestamp,
-                'status': self.status,
-                'class_id': self.class_id
-            }
-    
-    class Schedule:
-        '''
-        Mô hình thời khóa biểu
-        Attributes:
-            - class_id: ID của lớp học liên kết với thời khóa biểu
-            - start_time: Thời gian bắt đầu của lớp học
-            - end_time: Thời gian kết thúc của lớp học
-            - subject: Môn học của lớp học
-        Methods:
-            - to_dict: Chuyển đổi đối tượng thành từ điển
-        '''
-        def __init__(self, class_id, start_time, end_time, subject=None):
-            self.class_id = class_id
-            self.start_time = start_time
-            self.end_time = end_time
-            self.subject = subject
+class BuoiHoc:
+    def __init__(self, MaBuoiHoc: int, MaLopHocPhan: str, Thu: int, NgayHoc: datetime.date, MaLoaiDiemDanh: str, GhiChu: Optional[str]):
+        self.MaBuoiHoc = MaBuoiHoc
+        self.MaLopHocPhan = MaLopHocPhan
+        self.Thu = Thu
+        self.NgayHoc = NgayHoc
+        self.MaLoaiDiemDanh = MaLoaiDiemDanh
+        self.GhiChu = GhiChu
 
-        def to_dict(self):
-            return {
-                'class_id': self.class_id,
-                'start_time': self.start_time,
-                'end_time': self.end_time,
-                'subject': self.subject,
-            }
+class DiemDanhSV:
+    def __init__(self, MaBuoiHoc: int, MaSV: int, MaTrangThai: str, ThoiGianGhiNhan: datetime):
+        self.MaBuoiHoc = MaBuoiHoc
+        self.MaSV = MaSV
+        self.MaTrangThai = MaTrangThai
+        self.ThoiGianGhiNhan = ThoiGianGhiNhan
+
+class GiangVien:
+    def __init__(self, MaGV: int, TenGiangVien: str, SDT: Optional[int], MaKhoa: Optional[str], NamSinh: Optional[datetime.date], GhiChu: Optional[str]):
+        self.MaGV = MaGV
+        self.TenGiangVien = TenGiangVien
+        self.SDT = SDT
+        self.MaKhoa = MaKhoa
+        self.NamSinh = NamSinh
+        self.GhiChu = GhiChu
+
+class HocKy:
+    def __init__(self, MaHocKy: str, TenHocKy: str):
+        self.MaHocKy = MaHocKy
+        self.TenHocKy = TenHocKy
+
+class HocPhan:
+    def __init__(self, MaHocPhan: str, TenHocPhan: str, SoTinChi: int, TongSoTiet: int):
+        self.MaHocPhan = MaHocPhan
+        self.TenHocPhan = TenHocPhan
+        self.SoTinChi = SoTinChi
+        self.TongSoTiet = TongSoTiet
+
+class Khoa:
+    def __init__(self, MaKhoa: str, TenKhoa: str, GhiChu: Optional[str]):
+        self.MaKhoa = MaKhoa
+        self.TenKhoa = TenKhoa
+        self.GhiChu = GhiChu
+
+class LoaiDiemDanh:
+    def __init__(self, MaLoaiDiemDanh: str, TenLoaiDiemDanh: str):
+        self.MaLoaiDiemDanh = MaLoaiDiemDanh
+        self.TenLoaiDiemDanh = TenLoaiDiemDanh
+
+class Lop:
+    def __init__(self, MaBac: str, MaNienKhoa: int, MaNganh: str, STTLop: str, TenLop: str, MaGV: Optional[int], MaKhoa: str):
+        self.MaBac = MaBac
+        self.MaNienKhoa = MaNienKhoa
+        self.MaNganh = MaNganh
+        self.STTLop = STTLop
+        self.TenLop = TenLop
+        self.MaGV = MaGV
+        self.MaKhoa = MaKhoa
+
+class LopHocPhan:
+    def __init__(self, MaLopHocPhan: str, MaHocPhan: str, MaBac: str, MaNienKhoa: int, MaNganh: str, STTLop: str, SoBuoi: int, TietMoiBuoi: int, MaHocKy: str, MaGV: int):
+        self.MaLopHocPhan = MaLopHocPhan
+        self.MaHocPhan = MaHocPhan
+        self.MaBac = MaBac
+        self.MaNienKhoa = MaNienKhoa
+        self.MaNganh = MaNganh
+        self.STTLop = STTLop
+        self.SoBuoi = SoBuoi
+        self.TietMoiBuoi = TietMoiBuoi
+        self.MaHocKy = MaHocKy
+        self.MaGV = MaGV
+
+class Nganh:
+    def __init__(self, MaNganh: str, TenNganh: Optional[str]):
+        self.MaNganh = MaNganh
+        self.TenNganh = TenNganh
+
+class NienKhoa:
+    def __init__(self, MaNienKhoa: int, TenNienKhoa: str):
+        self.MaNienKhoa = MaNienKhoa
+        self.TenNienKhoa = TenNienKhoa
+
+class SinhVien:
+    def __init__(self, MaSV: int, MaBac: str, MaNienKhoa: int, MaNganh: str, STTLop: str, HoTenSV: Optional[str], NamSinh: Optional[datetime.date], DiaChi: Optional[str], GioiTinh: Optional[str], GhiChu: Optional[str]):
+        self.MaSV = MaSV
+        self.MaBac = MaBac
+        self.MaNienKhoa = MaNienKhoa
+        self.MaNganh = MaNganh
+        self.STTLop = STTLop
+        self.HoTenSV = HoTenSV
+        self.NamSinh = NamSinh
+        self.DiaChi = DiaChi
+        self.GioiTinh = GioiTinh
+        self.GhiChu = GhiChu
+
+class TaiKhoan:
+    def __init__(self, TenDangNhap: str, MatKhau: str, MaGV: int, VaiTro: str, GhiChu: Optional[str]):
+        self.TenDangNhap = TenDangNhap
+        self.MatKhau = MatKhau
+        self.MaGV = MaGV
+        self.VaiTro = VaiTro
+        self.GhiChu = GhiChu
+
+class ThongBao:
+    def __init__(self, thongbao_id: int, TieuDeThongBao: str, NgayDang: Optional[datetime], NoiDung: str, HinhAnh: Optional[bytes]):
+        self.thongbao_id = thongbao_id
+        self.TieuDeThongBao = TieuDeThongBao
+        self.NgayDang = NgayDang
+        self.NoiDung = NoiDung
+        self.HinhAnh = HinhAnh
+
+class TrangThaiDiemDanh:
+    def __init__(self, MaTrangThai: str, TenTrangThai: str, GhiChu: Optional[str]):
+        self.MaTrangThai = MaTrangThai
+        self.TenTrangThai = TenTrangThai
+        self.GhiChu = GhiChu

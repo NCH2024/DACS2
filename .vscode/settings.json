@@ -1,2 +1,11 @@
 {
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./app_face_recognition",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
 }

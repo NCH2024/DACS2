@@ -1,9 +1,32 @@
+'''
+FILE NAME: gui/base_dashbroad.py
+CODE BY: Nguyễn Chánh Hiệp 
+DATE: 22/06/2025
+DESCRIPTION:
+        + Đây là lớp cơ sở (base class) cho các giao diện dạng Bảng điều khiển (Dashboard).
+        + Định nghĩa bố cục chung bao gồm một thanh bên (sidebar) và một khu vực nội dung (content).
+        + Cung cấp các thành phần chung như logo, nút đăng xuất và phương thức 'clear_content' để chuyển đổi giữa các trang.
+VERSION: 1.0.0
+'''
 import customtkinter as ctk
 from gui.base_view import BaseView
 from gui.utils import ImageProcessor
 
 class DashbroadView(BaseView):
+    """
+    Lớp cơ sở cho các giao diện Bảng điều khiển (Dashboard).
+
+    Kế thừa từ `BaseView` và thiết lập một bố cục hai cột tiêu chuẩn:
+    - Một thanh bên (sidebar) cho điều hướng và các chức năng chung.
+    - Một khu vực nội dung (content) để hiển thị các trang con.
+    """
     def __init__(self, master, enable_fullscreen_control=False, disable_resize=False, *args, **kwargs):
+        """
+        Khởi tạo giao diện Bảng điều khiển.
+
+        Args:
+            master: Widget cha (thường là một cửa sổ Toplevel).
+        """
         super().__init__(master, enable_fullscreen_control=enable_fullscreen_control, disable_resize=disable_resize, *args, **kwargs)
         self.pack(fill="both", expand=True)
         self.master.state("zoomed")
@@ -36,10 +59,21 @@ class DashbroadView(BaseView):
         self.btn_logout.pack(pady=5, padx=5, anchor="s", fill="y")
         
     def clear_content(self):
+        """
+        Xóa tất cả các widget con khỏi khu vực nội dung (content frame).
+
+        Phương thức này được sử dụng để dọn dẹp giao diện trước khi hiển thị một trang mới,
+        đảm bảo không có widget cũ nào còn sót lại.
+        """
         for widget in self.content.winfo_children():
             widget.destroy()
             
             
     def logout(self):
+        """
+        Xử lý sự kiện đăng xuất.
+        
+        Phương thức này sẽ đóng cửa sổ dashboard hiện tại và hiển thị lại cửa sổ đăng nhập.
+        """
         self.master.master.deiconify()
         self.master.destroy()

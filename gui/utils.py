@@ -3,6 +3,7 @@ import customtkinter as ctk
 from PIL import Image
 import os
 from io import BytesIO
+import threading
 
 class ImageProcessor:
     def __init__(self, image_input):
@@ -264,6 +265,7 @@ class CustomTable(ctk.CTkFrame):
 
         super().__init__(master, fg_color="transparent", **kwargs)
 
+        # ... (giữ nguyên các thuộc tính khởi tạo) ...
         self.columns = columns
         self.data = data
         self.header_color = header_color
@@ -272,72 +274,94 @@ class CustomTable(ctk.CTkFrame):
         self.row_text_color = row_text_color
         self.column_widths = column_widths
         self.scroll = scroll
-        self.table_width = table_width or self.winfo_width() or 600
+        self.table_width = table_width
         self.table_height = table_height
-        self.highlight_columns = highlight_columns or []  # Danh sách chỉ số cột cần tô màu
+        self.highlight_columns = highlight_columns or []
         self.highlight_color = highlight_color
+        
+        self.container = None
+        self._data_widgets = [] # THAY ĐỔI: Lưu trữ các widget của hàng dữ liệu
 
-        self.after(100, self._init_render)
+        self.after(1, self._init_render) # Sử dụng after(1) để đảm bảo render
 
     def _init_render(self):
         self.update_idletasks()
-
+        
+        # --- Thiết lập container (ScrollableFrame hoặc Frame thường) ---
         if self.scroll:
-            self.scrollable_frame = ctk.CTkScrollableFrame(
-                self, fg_color="transparent"
-            )
-            self.scrollable_frame.grid(row=0, column=0, sticky="nsew")
-            self.grid_rowconfigure(0, weight=1)
-            self.grid_columnconfigure(0, weight=1)
-
-            self.scrollable_frame.grid_rowconfigure(0, weight=1)
-            self.scrollable_frame.grid_columnconfigure(0, weight=1)
-
-            self.container = self.scrollable_frame
+            if self.container is None:
+                self.scrollable_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+                self.scrollable_frame.grid(row=0, column=0, sticky="nsew")
+                self.grid_rowconfigure(0, weight=1)
+                self.grid_columnconfigure(0, weight=1)
+                self.container = self.scrollable_frame
         else:
             self.container = self
-            self.configure(width=self.table_width, height=self.table_height)
 
-        self._create_table()
+        # --- Tách biệt việc tạo bảng ---
+        self._create_header()
+        self._create_data_rows()
 
-    def _create_table(self):
-        num_cols = len(self.columns)
-
+    def _create_header(self):
+        """HÀM MỚI: Chỉ tạo header, chạy một lần duy nhất."""
         if not self.column_widths:
-            col_width = int(self.table_width / num_cols)
+            self.update_idletasks()
+            num_cols = len(self.columns)
+            current_container_width = self.container.winfo_width()
+            col_width = int(current_container_width / num_cols) if current_container_width > 1 else 100
             self.column_widths = [col_width] * num_cols
 
-        # Header
+        for i, width in enumerate(self.column_widths):
+            self.container.grid_columnconfigure(i, minsize=width)
+
         for col_index, col_name in enumerate(self.columns):
             label = ctk.CTkLabel(
                 self.container, text=col_name,
                 font=("Bahnschrift", 14, "bold"),
                 text_color=self.header_text_color,
                 fg_color=self.header_color,
-                width=self.column_widths[col_index],
                 height=30,
                 anchor="center"
             )
             label.grid(row=0, column=col_index, padx=1, pady=1, sticky="nsew")
 
-        # Dữ liệu
+    def _clear_data_rows(self):
+        """HÀM MỚI: Chỉ xóa các widget của hàng dữ liệu."""
+        for row_widgets in self._data_widgets:
+            for widget in row_widgets:
+                widget.destroy()
+        self._data_widgets = []
+
+    def _create_data_rows(self):
+        """HÀM MỚI: Chỉ tạo các hàng dữ liệu."""
         for row_index, row_data in enumerate(self.data, start=1):
+            row_widgets = []
             for col_index, cell in enumerate(row_data):
                 bg_color = self.highlight_color if col_index in self.highlight_columns else self.row_color
+                display_text = str(cell) if cell is not None else "-"
+                
                 label = ctk.CTkLabel(
-                    self.container, text=str(cell),
+                    self.container, text=display_text,
                     font=("Bahnschrift", 13),
                     text_color=self.row_text_color,
                     fg_color=bg_color,
-                    width=self.column_widths[col_index],
                     height=28,
                     anchor="w"
                 )
                 label.grid(row=row_index, column=col_index, padx=1, pady=1, sticky="nsew")
+                row_widgets.append(label)
+            self._data_widgets.append(row_widgets)
 
-        if not self.scroll:
-            for i in range(len(self.columns)):
-                self.container.grid_columnconfigure(i, weight=1)
+    def update_data(self, new_data):
+        """HÀM CẬP NHẬT ĐÃ TỐI ƯU HÓA."""
+        self.data = new_data
+        
+        # Chỉ xóa các hàng dữ liệu cũ, giữ lại header
+        self._clear_data_rows()
+        
+        # Tạo các hàng dữ liệu mới
+        if self.container and self.container.winfo_exists():
+            self._create_data_rows()
                 
 class NotifyCard(ctk.CTkFrame):
     def __init__(self, master, title, content, ngay_dang, image_pil, on_click=None, **kwargs):
@@ -436,9 +460,9 @@ class SliderWithLabel(ctk.CTkFrame):
         self.slider.set(value)
 
 class SwitchOption(ctk.CTkFrame):
-    def __init__(self, master, text, initial=True, command=None, **kwargs):
+    def __init__(self, master, text, initial=True, command=None, wraplenght=500, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
-        self.label = ctk.CTkLabel(self, text=text, text_color="#310148", font=("Bahnschrift", 14), wraplength=300, anchor="w", justify="left")
+        self.label = ctk.CTkLabel(self, text=text, text_color="#310148", font=("Bahnschrift", 14), wraplength=wraplenght, anchor="w", justify="left")
         self.label.pack(side="left", padx=(10, 5), pady=5)
 
         self.switch = ctk.CTkSwitch(self, text="BẬT" if initial else "TẮT", progress_color="#00D084")
