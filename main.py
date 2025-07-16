@@ -9,5 +9,9 @@ VERSION: 1.0.0
 '''
 
 from gui.main_window import runapp
+from core.app_config import load_config
 if __name__ == "__main__":
-    runapp()  
+        # khởi chạy cài đặt ứng dụng
+        AppConfig = load_config()
+        # Gọi hàm runapp để khởi chạy ứng dụng
+        runapp(config=AppConfig)                    

@@ -6,17 +6,22 @@ from tkinter import messagebox
 import core.database as Db
 from gui.utils import *
 
+from core.app_config import save_config
+
 from gui.lecturer_attendance_searchStudent import * 
 from gui.lecturer_attendance_setting import * 
 from app_face_recognition.widget_trainning_face import *
+from app_face_recognition.camera_setup import CameraManager
+
 
 class LecturerAttendance(ctk.CTkFrame):
-    def __init__(self, master=None, username=None, **kwargs):
+    def __init__(self, master=None, username=None, config=None,**kwargs):
         super().__init__(master, **kwargs)
         self.username = username
         self._border_width = 1
         self._border_color = "white"
         self._fg_color = "white"
+        self.AppConfig = config
 
         # Biến màu sắc
         self.widget_color = "#2DFCB0"
@@ -25,6 +30,18 @@ class LecturerAttendance(ctk.CTkFrame):
         # Khởi tạo các đối tượng xử lý
         self.attendance_processor = None
         self.camera_window = None # Biến để lưu trữ cửa sổ camera Toplevel
+        
+        # Danh sách camera
+        self.cameras = CameraManager.list_available_cameras()
+        if not self.cameras:
+            messagebox.showerror("Lỗi", "Không tìm thấy camera nào. Vui lòng kiểm tra kết nối camera.")
+            return
+        else:
+            # Tách riêng ID và tên camera để dễ dùng
+            self.camera_ids = [cam[0] for cam in self.cameras]   # [0, 1, 2]
+            self.camera_names = [cam[1] for cam in self.cameras] # ["USB Cam", "Built-in Cam"]
+
+            self.AppConfig.camera_config.selected_camera_id = self.camera_ids[0]  # chọn camera đầu tiên mặc định
 
         # Tiêu đề
         self.title_widget = ctk.CTkLabel(
@@ -82,12 +99,17 @@ class LecturerAttendance(ctk.CTkFrame):
         self.title_wm_devives = LabelCustom(self.widget_menu_devices, "THIẾT BỊ", font_size=12, font_weight="bold", text_color=self.txt_color_title)
         self.title_wm_devives.grid(row=0, column=0, padx=10, pady=0, sticky="nw")
 
-        self.widget_menu_devices_cbx_camera = ComboboxTheme(self.widget_menu_devices, values=["ADM camera", "Canon a342 1600xz"])
+        self.widget_menu_devices_cbx_camera = ComboboxTheme(self.widget_menu_devices, values="Đang kiểm tra camera...", state="readonly")
         self.widget_menu_devices_cbx_camera.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="ew")
+        self.widget_menu_devices_cbx_camera_tooltip = Tooltip(self.widget_menu_devices_cbx_camera, text="Chọn camera và nhấn 'Lưu Camera' để lưu cài đặt camera.")
+        self.check_camera()  # Kiểm tra và cập nhật danh sách camera
 
         # THAY ĐỔI: Gán command cho nút Test Camera
-        self.widget_menu_devices_testCamera = ButtonTheme(self.widget_menu_devices, "Test Camera", width=80, fg_color="#0099FF", hover_color="#003462")
+        self.widget_menu_devices_testCamera = ButtonTheme(self.widget_menu_devices, "Lưu Camera", fg_color="#0099FF", hover_color="#003462", command=self.save_camera_setting)
         self.widget_menu_devices_testCamera.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="ne")
+        
+        self.widget_menu_devices_testCamera = ButtonTheme(self.widget_menu_devices, "Test Camera", fg_color="#0099FF", hover_color="#003462", command=self.test_camera)
+        self.widget_menu_devices_testCamera.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="ne")
 
         # === KHUNG PHẢI - THÔNG TIN ĐIỂM DANH ===
         self.widget_attendance_options = ctk.CTkFrame(self, fg_color="transparent", height=120)
@@ -234,8 +256,56 @@ class LecturerAttendance(ctk.CTkFrame):
     def show_tranning_face(self):
         WidgetTranningFace.show_window(parent=self)
         
+    def save_camera_setting(self):
+        selected_name = self.widget_menu_devices_cbx_camera.get()
+        for id, name in self.cameras:
+            if name == selected_name:
+                self.AppConfig.camera_config.selected_camera_id = id
+                save_config(self.AppConfig)
+                messagebox.showinfo("Thông báo", f"Đã lưu camera: {name}.")
+                break
+        
+    def test_camera(self):
+        loading = LoadingDialog(self, "Đang kiểm tra camera...")
+
+        def run_test():
+            print(f"Đang kiểm tra camera với ID: {self.AppConfig.camera_config.selected_camera_id}")
+            camtest = CameraManager(camera_id=self.AppConfig.camera_config.selected_camera_id)
+
+            # Bước 1: Mở camera
+            camtest.open_camera()
+            self.after(0, lambda: loading.update_progress(0.6))
+
+            if camtest.is_opened:
+                # Bước 2: Đọc frame
+                frame = camtest.get_frame()
+                self.after(0, lambda: loading.update_progress(0.9))
+
+                camtest.release_camera()
+                self.after(0, lambda: loading.update_progress(1.0))
+
+                self.after(200, lambda: messagebox.showinfo("Thông báo", "Camera đã được kết nối thành công!"))
+            else:
+                camtest.release_camera()
+                self.after(0, lambda: loading.update_progress(1.0))
+                self.after(200, lambda: messagebox.showerror("Lỗi", "Không thể kết nối đến camera."))
+
+            self.after(600, loading.destroy)
+
+        threading.Thread(target=run_test, daemon=True).start()
+
+
+
+        
     # === CÁC HÀM CHỨC NĂNG (ĐÃ CẢI TIẾN) ===
 
+    def check_camera(self):
+        if not self.cameras:
+            self.widget_menu_devices_cbx_camera.set("Thiết bị camera không khả dụng")
+        else:
+            self.widget_menu_devices_cbx_camera.configure(values=self.camera_names)
+            self.widget_menu_devices_cbx_camera.set(self.camera_names[0])
+    
     def on_class_selected(self, selected_class):
         """
         Khi một lớp được chọn, bắt đầu một luồng mới để tải dữ liệu

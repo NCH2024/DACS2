@@ -151,6 +151,7 @@ class ButtonTheme(ctk.CTkButton):
         border_width=2,
         height=40,
         width=200,
+        image=None,  
         command=None,
         **kwargs
     ):
@@ -164,6 +165,7 @@ class ButtonTheme(ctk.CTkButton):
             border_width=border_width,
             height=height,
             width=width,
+            image=image,  
             command=command,
             **kwargs
         )
@@ -198,6 +200,40 @@ class ComboboxTheme(ctk.CTkComboBox):
             command=command,
             **kwargs
         )
+
+
+class Tooltip:
+    def __init__(self, widget, text, delay=200):
+        self.widget = widget
+        self.text = text
+        self.delay = delay  # milliseconds
+        self.tooltip_window = None
+        self.task_id = None
+
+        self.widget.bind("<Enter>", self.show_tooltip)
+        self.widget.bind("<Leave>", self.hide_tooltip)
+
+    def show_tooltip(self, event=None):
+        if self.task_id:
+            self.widget.after_cancel(self.task_id)
+        self.task_id = self.widget.after(self.delay, self._show)
+
+    def _show(self):
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+
+        self.tooltip_window = ctk.CTkToplevel(self.widget)
+        self.tooltip_window.wm_overrideredirect(True)  # Loại bỏ thanh tiêu đề và viền
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
+        label = ctk.CTkLabel(self.tooltip_window, text=self.text, fg_color="white", bg_color="white", corner_radius=0)
+        label.pack(padx=5, pady=5)
+
+    def hide_tooltip(self, event=None):
+        if self.task_id:
+            self.widget.after_cancel(self.task_id)
+            self.task_id = None
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
 
 class LabelCustom(ctk.CTkFrame):
     def __init__(
@@ -485,4 +521,56 @@ class SwitchOption(ctk.CTkFrame):
         else:
             self.switch.deselect()
         self.switch.configure(text="BẬT" if value else "TẮT")
+        
+class LoadingDialog(ctk.CTkToplevel):
+    def __init__(self, parent, message="Đang xử lý..."):
+        super().__init__(parent)
+        self.geometry("500x200")
+        self.title("")
+        self.resizable(False, False)
+        self.overrideredirect(True)
+        self.attributes("-transparentcolor", "#F2F2F2")
+        self.configure(bg="#F2F2F2", fg_color="#F2F2F2")  # đồng bộ màu trong suốt
+        self.attributes("-topmost", True)
+        self.after(100, lambda: self.attributes("-topmost", False))  # Đặt lại topmost sau 100ms
+        self.attributes("-alpha", 0.93)
+        self.grab_set()
+
+        self.container = ctk.CTkFrame(self, corner_radius=20, fg_color="white")
+        self.container.pack(expand=True, fill="both", padx=20, pady=20)
+
+        self.label = ctk.CTkLabel(
+            self.container,
+            text=message,
+            font=("Bahnschrift", 20, "bold"),
+            text_color="#002F6C"
+        )
+        self.label.pack(pady=(30, 20))
+
+        self.progressbar = ctk.CTkProgressBar(
+            self.container,
+            width=400,
+            height=18,
+            corner_radius=10,
+            progress_color="#012C49",
+            fg_color="#E0E0E0"
+        )
+        self.progressbar.pack(pady=(0, 10))
+        self.progressbar.set(0)
+
+        self.center_window(parent)
+
+    def update_progress(self, value: float):
+        if 0 <= value <= 1:
+            self.progressbar.set(value)
+
+    def center_window(self, parent):
+        self.update_idletasks()
+        x = parent.winfo_rootx() + (parent.winfo_width() // 2) - (self.winfo_width() // 2)
+        y = parent.winfo_rooty() + (parent.winfo_height() // 2) - (self.winfo_height() // 2)
+        self.geometry(f"+{x}+{y}")
+
+
+
+
 

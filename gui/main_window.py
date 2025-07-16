@@ -1,3 +1,4 @@
+from logging import root
 from gui.base_view import BaseView
 import customtkinter as ctk
 from gui.utils import ImageProcessor
@@ -6,13 +7,17 @@ import core.database
 from core.utils import bcrypt_password, check_password
 from gui.dashbroad_lecturer import LecturerDashbroad
 
+from core.app_config import load_config, save_config
+
+
 class MainWindow(BaseView):
-    def __init__(self, master):
+    def __init__(self, master, config):
         super().__init__(master)
         self.master.title("PHẦN MỀM ĐIỂM DANH")
         self.master.geometry(f"1280x720+0+0")
+        self.AppConfig = config
         
-        
+
         self.sidebar = ctk.CTkFrame(self, width=450, corner_radius=0, fg_color="#05243F")
         self.sidebar.pack(side="left", fill="y")
         self.content = ctk.CTkFrame(self, corner_radius=0, fg_color="#05243F")
@@ -54,21 +59,22 @@ class MainWindow(BaseView):
                                             width=200, height=40, font=("Bahnschrift", 16))
         self.password_entry.place(relx=0.5, rely=0.6, anchor="center")
         
-        self.login_button = self.ButtonTheme(self.sidebar, "Đăng nhập",width=200, height=50, command=self.on_login)
-        self.login_button.place(relx=0.5, rely=0.7, anchor="center")
+        self.check_save_login = ctk.CTkCheckBox(self.sidebar, text="Lưu đăng nhập", text_color="white", command=self.on_check_save_login)
+        self.check_save_login.place(relx=0.5, rely=0.67, anchor="center")
+
+        self.login_button = self.ButtonTheme(self.sidebar, "Đăng nhập",width=200, height=50, command=lambda: self.on_login(self.username_entry.get(), self.password_entry.get()))
+        self.login_button.place(relx=0.5, rely=0.75, anchor="center")
 
         text_var_second = tk.StringVar(value="Sinh viên: NGUYỄN CHÁNH HIỆP \n Mã số sinh viên: 223408 \n Lớp: 22TIN-TT \n\n Tháng 6/2025")
         self.tittle_second_label = self.LabelFont(self.sidebar, text=text_var_second,
-                                                  font=("Bahnschrift", 16, "bold"),
+                                                  font=("Bahnschrift", 15, "bold"),
                                                   justify="center", bg_color="transparent",
                                                   width=400, height=80, text_color="white")
         self.tittle_second_label.place(relx=0.5, rely=0.9, anchor="center")
 
-    
-    def on_login(self):
+    def on_login(self, username=None, password=None):
         """Xử lý sự kiện khi nút đăng nhập được nhấn."""
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+        
         # Kiểm tra đăng nhập
         result = core.database.login(username, password)
 
@@ -78,32 +84,51 @@ class MainWindow(BaseView):
             user_id, role = result
             if role == "giangvien":
                 lecturer = ctk.CTkToplevel(self.master)
-                lecturer_dashbroad = LecturerDashbroad(lecturer, user_id)
+                lecturer_dashbroad = LecturerDashbroad(lecturer, user_id, config=self.AppConfig)
                 lecturer_dashbroad.pack(expand=True, fill="both")
                 self.master.withdraw()
             else:
                 self.show_message("Lỗi", "Đăng nhập thất bại.")
+                
+    def on_check_save_login(self):
+        """Xử lý sự kiện khi checkbox lưu đăng nhập được thay đổi."""
+        if self.check_save_login.get():
+            username = self.username_entry.get()
+            password = self.password_entry.get()
+            if username and password:
+                self.AppConfig.login_info.username = username
+                self.AppConfig.login_info.password = password
+                save_config(self.AppConfig)
+                
+        else:
+            self.AppConfig.login_info.username = None
+            self.AppConfig.login_info.password = None
+            save_config(self.AppConfig)
+            
 
         
 
-def runapp():
+def runapp(config):
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("green")
     root = ctk.CTk()
-
-    # Ẩn cửa sổ trước
     root.withdraw()
 
-    app = MainWindow(master=root)
+    app = MainWindow(master=root, config=config)
+    username = config.login_info.username
+    password = config.login_info.password
 
-    #hiện lại và ép focus
     def show_window():
         root.deiconify()
         root.lift()
         root.focus_force()
         root.attributes('-topmost', True)
-        root.after(500, lambda: root.attributes('-topmost', False))
+        root.after(100, lambda: root.attributes('-topmost', False))
 
     root.after(200, show_window)
+
+    # Đăng nhập tự động sau 100ms, khi GUI đã sẵn sàng
+    if username and password:
+        root.after(200, lambda: app.on_login(username, password))
 
     root.mainloop()

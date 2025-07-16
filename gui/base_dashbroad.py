@@ -11,7 +11,7 @@ VERSION: 1.0.0
 import customtkinter as ctk
 from gui.base_view import BaseView
 from gui.utils import ImageProcessor
-
+from core.app_config import save_config, load_config
 class DashbroadView(BaseView):
     """
     Lớp cơ sở cho các giao diện Bảng điều khiển (Dashboard).
@@ -31,6 +31,9 @@ class DashbroadView(BaseView):
         self.pack(fill="both", expand=True)
         self.master.state("zoomed")
         self.configure(fg_color="#05243F")
+        
+        # Lấy cấu hình cài đặt ứng dụng
+        self.AppConfig = kwargs.get('config')
 
         # Sidebar (menu bên trái)
         self.sidebar = ctk.CTkFrame(self, width=300, corner_radius=0, fg_color="#05243F")
@@ -75,5 +78,8 @@ class DashbroadView(BaseView):
         
         Phương thức này sẽ đóng cửa sổ dashboard hiện tại và hiển thị lại cửa sổ đăng nhập.
         """
+        self.AppConfig.login_info.username = None
+        self.AppConfig.login_info.password = None
+        save_config(self.AppConfig)
         self.master.master.deiconify()
         self.master.destroy()

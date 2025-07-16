@@ -9,12 +9,13 @@ import core.database as Db
 
 class LecturerDashbroad(DashbroadView):
     """Tạo giao diện dashboard cho giảng viên."""
-    def __init__(self, master, user, *args, **kwargs):
+    def __init__(self, master, user, config, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.user = user
         self.master.title("Dashboard Giảng Viên")
         self.master.geometry("1060x640")
         self.nameLecturer = Db.get_username(self.user)
+        self.AppConfig = config
         self.setup_ui_sidebar(self.nameLecturer)
 
     def ButtonTheme(self, master, text, font=("Bahnschrift", 18, "bold"), fg_color="#31FCA1", hover_color="#00C785", txt_color="#05243F", border_color="white", border_width=2, command=None, **kwargs):
@@ -59,7 +60,7 @@ class LecturerDashbroad(DashbroadView):
 
     def show_attendance(self, user):
         self.clear_content()
-        content = LecturerAttendance(master=self.content, username=user)
+        content = LecturerAttendance(master=self.content, username=user, config=self.AppConfig)
         content.pack(fill="both", expand=True, padx=10, pady=10)
         self.current_page = "attendance"
         self.update_button_highlight()

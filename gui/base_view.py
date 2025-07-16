@@ -10,6 +10,7 @@ VERSION: 1.0.0
 '''
 import customtkinter as ctk
 from tkinter import messagebox
+from core.app_config import load_config
 
 class BaseView(ctk.CTkFrame):
     def __init__(self, master, 
@@ -22,7 +23,6 @@ class BaseView(ctk.CTkFrame):
         self.pack(expand=True, fill="both")
         self._fg_color="#05243F",
        
-
 
         if enable_fullscreen_control:
             self.DisableFullscreen()

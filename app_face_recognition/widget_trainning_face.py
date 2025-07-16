@@ -4,6 +4,7 @@ from tkinter import messagebox
 from core.models import SinhVien
 import core.database as Db
 from core.utils import *
+from app_face_recognition.widget_camera import WidgetCamera
 
 class WidgetTranningFace(ctk.CTkFrame):
     def __init__(self, master=None, username=None, **kwargs):
@@ -118,11 +119,13 @@ class WidgetTranningFace(ctk.CTkFrame):
         self.cbx_subject = ComboboxTheme(self.widget_search, values=["Đào tạo chuyên sâu", "Đào tạo nhanh"])
         self.cbx_subject.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="nwe")
         
+        self.cbx_tooltip = Tooltip(self.cbx_subject, "Chọn chế độ đào tạo khuôn mặt cho sinh viên.\nChế độ chuyên sâu sẽ yêu cầu nhiều ảnh hơn và tốn thời gian hơn!")
+        
         self.check_setAvarta = SwitchOption(self.widget_search, "Dùng ảnh sau khi đào tạo làm Avatar cho sinh viên\n(Không nên bật nếu SV đã thiết lập avatar!)", wraplenght=300, initial=False, command=self.check_option)
         self.check_setAvarta.grid(row=4, column=0, columnspan=2, padx=5 , pady=20, sticky="nwe")
 
         
-        self.btn_searchAll = ButtonTheme(self.widget_search, "Đào tạo dữ liệu", width=100)
+        self.btn_searchAll = ButtonTheme(self.widget_search, "Đào tạo dữ liệu", width=100, command=self.open_camera)
         self.btn_searchAll.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="new")
 
     
@@ -173,6 +176,18 @@ class WidgetTranningFace(ctk.CTkFrame):
         self.txt_HoTen.value.configure(text=self._fix_none(sv.HoTenSV))
         self.txt_Birthday.value.configure(text=self._fix_none(sv.NamSinh))
         self.txt_Notes.value.configure(text=self._fix_none(sv.GhiChu))
+        
+    def open_camera(self):
+        maSV = self.ent_IDStudent.get().strip()
+        if not maSV:
+            messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập MSSV.")
+            return
+        elif not Db.get_student_by_id(maSV):
+            messagebox.showinfo("Không tìm thấy", f"Không tìm thấy sinh viên với MSSV {maSV}.")
+            return
+        else:
+            self.search_student()
+            WidgetCamera.show_window(parent=self, enable=1, config="fill-y")     
 
     # ==== CHẾ ĐỘ HIỂN THỊ DẠNG CỬA SỔ ====
     _window_instance = None

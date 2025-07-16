@@ -1,0 +1,9 @@
+{
+    "login_info": {
+        "username": "hiep",
+        "password": "123"
+    },
+    "camera_config": {
+        "selected_camera_id": 0
+    }
+}

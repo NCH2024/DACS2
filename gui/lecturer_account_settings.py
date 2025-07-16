@@ -25,8 +25,8 @@ class LecturerAccount_Setting(ctk.CTkFrame):
         self.user_info_name = LabelCustom(self.user_info, "Username:", value=self.user)
         
         # Các tuỳ chọn bật/tắt
-        self.switch_realtime = SwitchOption(self, "Lưu đăng nhập cho lần kế tiếp", initial=False, command=self.on_check)
-        self.switch_realtime.grid(row=3, column=0,padx=10, columnspan=3, pady=5, sticky="ew")
+        # self.switch_realtime = SwitchOption(self, "Lưu đăng nhập cho lần kế tiếp", initial=False, command=self.on_check)
+        # self.switch_realtime.grid(row=3, column=0,padx=10, columnspan=3, pady=5, sticky="ew")
         
         # Nhóm cài đặt mật khẩu
         self.password_setting = ctk.CTkLabel(self, text="THIẾT LẬP MẬT KHẨU", font=("Bahnschrift", 12), text_color="#0044FF")
