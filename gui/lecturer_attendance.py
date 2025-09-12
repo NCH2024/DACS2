@@ -12,6 +12,8 @@ from gui.lecturer_attendance_searchStudent import *
 from gui.lecturer_attendance_setting import * 
 from app_face_recognition.widget_trainning_face import *
 from app_face_recognition.camera_setup import CameraManager
+from app_face_recognition.controller import MainController
+from app_face_recognition.widget_attendance_face import WidgetAttendanceFace
 
 
 class LecturerAttendance(ctk.CTkFrame):
@@ -31,6 +33,12 @@ class LecturerAttendance(ctk.CTkFrame):
         self.attendance_processor = None
         self.camera_window = None # Biến để lưu trữ cửa sổ camera Toplevel
         
+        # Khởi tạo biến cotroller điều khiển nhận dạng
+        self.controller = MainController(
+            model_path="models", 
+            sounds_path="/resources/sound"
+        )
+
         # Danh sách camera
         self.cameras = CameraManager.list_available_cameras()
         if not self.cameras:
@@ -209,7 +217,7 @@ class LecturerAttendance(ctk.CTkFrame):
         self.radio_all.grid(row=2, column=0, padx=20, pady=(0, 5), sticky="w")
 
         # THAY ĐỔI: Gán command cho nút Điểm danh
-        self.btn_attendance = ButtonTheme(self.widget_attendance_options_right, text="Điểm danh", fg_color="#0099FF", hover_color="#003462", width=120)
+        self.btn_attendance = ButtonTheme(self.widget_attendance_options_right, text="Điểm danh", fg_color="#0099FF", hover_color="#003462", width=120, command=self.attendance_student)
         self.btn_attendance.grid(row=1, column=1, rowspan=3, padx=10, pady=5, sticky="e")
 
         # === KHUNG PHẢI - DANH SÁCH SINH VIÊN ===
@@ -254,15 +262,15 @@ class LecturerAttendance(ctk.CTkFrame):
         
         
     def show_tranning_face(self):
-        WidgetTranningFace.show_window(parent=self)
-        
+        WidgetTranningFace.show_window(parent=self, username=self.username, controller=self.controller)
+
     def save_camera_setting(self):
         selected_name = self.widget_menu_devices_cbx_camera.get()
         for id, name in self.cameras:
             if name == selected_name:
                 self.AppConfig.camera_config.selected_camera_id = id
                 save_config(self.AppConfig)
-                messagebox.showinfo("Thông báo", f"Đã lưu camera: {name}.")
+                self.toast = ToastNotification(self, f"Đã lưu camera: {name}", duration=2000)
                 break
         
     def test_camera(self):
@@ -284,7 +292,7 @@ class LecturerAttendance(ctk.CTkFrame):
                 camtest.release_camera()
                 self.after(0, lambda: loading.update_progress(1.0))
 
-                self.after(200, lambda: messagebox.showinfo("Thông báo", "Camera đã được kết nối thành công!"))
+                self.after(200, lambda: ToastNotification(self, "Camera đã được kết nối thành công!", duration=2000))
             else:
                 camtest.release_camera()
                 self.after(0, lambda: loading.update_progress(1.0))
@@ -522,3 +530,62 @@ class LecturerAttendance(ctk.CTkFrame):
 
 
         self.table.update_data(data)
+        
+            
+    def check_option_attendace(self):
+        if self.attendance_mode_var.get() == "single":
+            ToastNotification(self, "Đã chọn chế độ điểm danh cho từng sinh viên", duration=5000)
+        else:
+            ToastNotification(self, "Đã chọn chế độ điểm danh cả lớp", duration=5000)
+        
+        
+    def attendance_student(self):
+        """
+        Tạo và hiển thị lớp phủ điểm danh.
+        ĐÃ CẬP NHẬT: Lấy MaBuoiHoc trước khi mở camera.
+        """
+        loading = LoadingDialog(self, "ĐANG TẢI: Chuẩn bị tài nguyên điểm danh ...")
+        def run_attendance():
+            # --- BƯỚC 1: Lấy thông tin từ các combobox ---
+            class_name = self.widget_attendance_options_left_cbxClass.get()
+            subject_name = self.widget_attendance_options_left_cbxSubject.get()
+            date_str = self.widget_attendance_options_left_cbxDate.get()
+            session_name = self.widget_attendance_options_left_cbxSession.get()
+            
+            self.after(0, lambda: loading.update_progress(0.1))
+        
+            # --- BƯỚC 2: Kiểm tra thông tin có hợp lệ không ---
+            if "Đang tải" in class_name or "Không có" in class_name or not all([class_name, subject_name, date_str, session_name]):
+                messagebox.showwarning("Thiếu thông tin", "Vui lòng chọn đầy đủ thông tin Lớp, Học phần, Ngày và Buổi học trước khi điểm danh.")
+                return
+            # --- BƯỚC 3: Gọi hàm mới để lấy Mã Buổi Học ---
+            ma_buoi_hoc = Db.get_ma_buoi_hoc(class_name, subject_name, date_str, session_name)
+            self.after(0, lambda: loading.update_progress(0.2))
+            if ma_buoi_hoc is None:
+                messagebox.showerror("Lỗi", f"Không tìm thấy thông tin buổi học tương ứng trong CSDL.\nVui lòng kiểm tra lại.")
+                return
+            
+            # In ra để kiểm tra (tùy chọn)
+            print(f"Chuẩn bị điểm danh cho Mã Buổi Học: {ma_buoi_hoc}")
+            self.after(0, lambda: loading.update_progress(0.5))
+            # --- BƯỚC 4: Mở cửa sổ điểm danh và truyền ma_buoi_hoc vào ---
+            if hasattr(self, 'attendance_frame') and self.attendance_frame.winfo_exists():
+                return
+            self.attendance_frame = WidgetAttendanceFace(
+                master=self,
+                controller=self.controller,
+                username=self.username,
+                ma_buoi_hoc=ma_buoi_hoc,
+                option_attendace=self.attendance_mode_var.get() 
+            )
+            self.controller.start_attendance(ma_buoi_hoc, class_name)
+            self.after(0, lambda: loading.update_progress(0.8))
+            self.attendance_frame.grid(row=0, column=0, rowspan=3, columnspan=2, sticky="nsew")
+            toplevel_window = self.winfo_toplevel()
+            toplevel_window.bind("<Escape>", lambda event: self.attendance_frame.on_close())
+            self.after(0, lambda: loading.update_progress(1.0))
+            self.after(100, loading.destroy)
+            
+        threading.Thread(target=run_attendance, daemon=True).start()
+            
+

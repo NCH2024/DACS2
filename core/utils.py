@@ -11,6 +11,7 @@ VERSION: 1.0.0
 import re
 from datetime import datetime
 import bcrypt
+import pygame
 
 def bcrypt_password(password: str) -> str:
     """Mã hóa password bằng bcrypt."""
@@ -20,7 +21,6 @@ def bcrypt_password(password: str) -> str:
 
 def check_password(plain_password: str, bcrypt_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode(), bcrypt_password.encode())
-
 
 def format_time(dt):
     """Định dạng thời gian sang chuỗi 'YYYY-MM-DD HH:MM'."""

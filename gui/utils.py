@@ -57,6 +57,16 @@ class ImageProcessor:
 
     def get_pil_image(self):
         return self.image
+    
+    def save_to_dir(self, filename, directory="image_student"):  # <--- Tên thư mục được định nghĩa ở đây
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+            print(f"Directory '{directory}' created successfully.")
+
+        full_path = os.path.join(directory, filename)
+        self.image.save(full_path)
+        print(f"Image saved to: {full_path}")
+        return full_path
 
 
 class ImageSlideshow(ctk.CTkFrame):
@@ -153,6 +163,7 @@ class ButtonTheme(ctk.CTkButton):
         width=200,
         image=None,  
         command=None,
+        corner_radius=10,
         **kwargs
     ):
         super().__init__(
@@ -167,6 +178,7 @@ class ButtonTheme(ctk.CTkButton):
             width=width,
             image=image,  
             command=command,
+            corner_radius=corner_radius,
             **kwargs
         )
 
@@ -288,6 +300,10 @@ class LabelCustom(ctk.CTkFrame):
 
         # Gói gọn nguyên frame ra ngoài
         self.pack(pady=pack_pady, padx=pack_padx, anchor=pack_anchor)
+        
+    def set_text(self, text):
+        self.label.configure(text=text)
+
 
 class CustomTable(ctk.CTkFrame):
     def __init__(self, master, columns, data, 
@@ -400,15 +416,21 @@ class CustomTable(ctk.CTkFrame):
             self._create_data_rows()
                 
 class NotifyCard(ctk.CTkFrame):
-    def __init__(self, master, title, content, ngay_dang, image_pil, on_click=None, **kwargs):
+    def __init__(self, master, title, content,
+                 ngay_dang, 
+                 image_pil, 
+                 on_click=None, 
+                 height=150, 
+                 width=250, 
+                text_btn="Xem chi tiết", **kwargs):
         super().__init__(master, fg_color="white", corner_radius=15, **kwargs)
 
         if image_pil:
-            img = ImageProcessor(image_pil).crop_to_aspect(4, 3).to_ctkimage(size=(250, 150))
+            img = ImageProcessor(image_pil).crop_to_aspect(4, 3).to_ctkimage(size=(width, height))
         else:
             img = None
 
-        self.image_label = ctk.CTkLabel(self, image=img, text="", width=200, height=150, corner_radius=0)
+        self.image_label = ctk.CTkLabel(self, image=img, text="", width=width, height=height, corner_radius=10)
         self.image_label.image = img
         self.image_label.grid(row=0, column=0, rowspan=3, padx=0, pady=0)
 
@@ -418,8 +440,12 @@ class NotifyCard(ctk.CTkFrame):
         self.date_label = ctk.CTkLabel(self, text=ngay_dang.strftime("%d/%m/%Y %H:%M"), font=("Bahnschrift", 12), text_color="#3E3E3E")
         self.date_label.grid(row=1, column=1, sticky="w", padx=20, pady=2)
 
-        self.detail_btn = ctk.CTkButton(self, text="Xem chi tiết", command=on_click)
+        self.detail_btn = ctk.CTkButton(self, text=text_btn, command=on_click)
         self.detail_btn.grid(row=2, column=1, sticky="w", padx=20, pady=(5, 5))
+        
+    def set_up_button(self, fg_color, hover_color, text_color, border_color, border_width):
+        self.detail_btn.configure(fg_color = fg_color, hover_color = hover_color, text_color = text_color, border_color = border_color, border_width = border_width)
+            
 
 
 
@@ -496,12 +522,12 @@ class SliderWithLabel(ctk.CTkFrame):
         self.slider.set(value)
 
 class SwitchOption(ctk.CTkFrame):
-    def __init__(self, master, text, initial=True, command=None, wraplenght=500, **kwargs):
+    def __init__(self, master, text, initial=True, command=None, wraplenght=500, text_color="#310148", font=("Bahnschrift", 13), **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
-        self.label = ctk.CTkLabel(self, text=text, text_color="#310148", font=("Bahnschrift", 14), wraplength=wraplenght, anchor="w", justify="left")
+        self.label = ctk.CTkLabel(self, text=text, text_color=text_color, font=font, wraplength=wraplenght, anchor="w", justify="left")
         self.label.pack(side="left", padx=(10, 5), pady=5)
 
-        self.switch = ctk.CTkSwitch(self, text="BẬT" if initial else "TẮT", progress_color="#00D084")
+        self.switch = ctk.CTkSwitch(self, text="BẬT" if initial else "TẮT", progress_color="#00D084", font=font, text_color=text_color)
         self.switch.select() if initial else self.switch.deselect()
         self.switch.pack(side="right", padx=10)
 
@@ -571,6 +597,82 @@ class LoadingDialog(ctk.CTkToplevel):
         self.geometry(f"+{x}+{y}")
 
 
+def resize_crop_to_fill(image, target_width, target_height):
+    """Resize hình ảnh để *lấp đầy* khung mà không méo hình (giữ tỷ lệ), có thể bị cắt 2 bên"""
+    img_ratio = image.width / image.height
+    target_ratio = target_width / target_height
+
+    if img_ratio > target_ratio:
+        # Hình rộng hơn khung ➝ cắt 2 bên
+        new_height = target_height
+        new_width = int(new_height * img_ratio)
+    else:
+        # Hình cao hơn khung ➝ cắt trên dưới
+        new_width = target_width
+        new_height = int(new_width / img_ratio)
+
+    resized_img = image.resize((new_width, new_height), Image.LANCZOS)
+
+    # Cắt phần thừa để vừa khít khung
+    left = (new_width - target_width) // 2
+    top = (new_height - target_height) // 2
+    right = left + target_width
+    bottom = top + target_height
+
+    return resized_img.crop((left, top, right, bottom))
 
 
 
+class ToastNotification(ctk.CTkToplevel):
+    def __init__(self, parent, message, duration=2000):
+        super().__init__(parent)
+        self.duration = duration
+        self.opacity = 0.0
+        self.offset_y = 50  # ban đầu toast sẽ lệch xuống dưới
+        
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
+        self.attributes("-alpha", self.opacity)
+
+        self.configure(fg_color="#000945")
+
+        # Label nội dung
+        self.label = ctk.CTkLabel(self, text=message, text_color="#A0FB3E", font=("Bahnschrift", 15, "bold"), corner_radius=20)
+        self.label.pack(padx=15, pady=10)
+
+        self.update_idletasks()
+        self.toast_width = self.winfo_reqwidth()
+        self.toast_height = self.winfo_reqheight()
+
+        # Lấy vị trí gốc của parent
+        parent_x = parent.winfo_rootx()
+        parent_y = parent.winfo_rooty()
+        parent_w = parent.winfo_width()
+        parent_h = parent.winfo_height()
+
+        # Đặt vị trí ban đầu (ẩn một chút bên dưới)
+        self.target_x = parent_x + parent_w - self.toast_width - 20
+        self.target_y = parent_y + parent_h - self.toast_height - 20
+        self.geometry(f"{self.toast_width}x{self.toast_height}+{self.target_x}+{self.target_y + self.offset_y}")
+
+        # Bắt đầu hiệu ứng
+        self.animate_in()
+
+    def animate_in(self):
+        if self.opacity < 1.0 or self.offset_y > 0:
+            self.opacity = min(1.0, self.opacity + 0.1)
+            self.offset_y = max(0, self.offset_y - 5)
+
+            self.attributes("-alpha", self.opacity)
+            self.geometry(f"{self.toast_width}x{self.toast_height}+{self.target_x}+{self.target_y + self.offset_y}")
+            self.after(20, self.animate_in)
+        else:
+            self.after(self.duration, self.animate_out)
+
+    def animate_out(self):
+        if self.opacity > 0:
+            self.opacity = max(0.0, self.opacity - 0.05)
+            self.attributes("-alpha", self.opacity)
+            self.after(20, self.animate_out)
+        else:
+            self.destroy()

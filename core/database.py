@@ -351,6 +351,25 @@ def get_attendance_list_of_class(class_name, subject_name, ngay, buoi):
     
     return results
 
+def get_data_face_trainning(MaSV):
+    conn = connect_db()
+    if conn is None:
+        return None
+
+    try:
+        cursor = conn.cursor()
+        query = "SELECT AnhDaiDien, FaceEncoding, ThoiGianTao FROM dulieukhuonmat WHERE MaSV = %s"
+        cursor.execute(query, (MaSV,))
+        result = cursor.fetchone()
+        return result
+    except mysql.connector.Error as err:
+        print(f"Lỗi khi truy vấn dữ liệu khuôn mặt cho MaSV {MaSV}: {err}")
+        return None
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
 def load_face_encodings():
     """
     Tải tất cả các FaceEncoding và MaSV tương ứng từ bảng dulieukhuonmat vào bộ nhớ.
@@ -464,75 +483,27 @@ def get_student_info_by_ma_sv(ma_sv):
             conn.close()
     return student_info
 
-def record_attendance(ma_sv, ma_lop_hoc_phan, ngay_hoc, ma_loai_diem_danh, trang_thai="Có mặt"):
-    """
-    Ghi nhận điểm danh vào bảng diemdanh.
-    Lưu ý: Bảng 'diemdanh' của bạn trong 333.sql không có cột MaLoaiDiemDanh và NgayHoc trực tiếp.
-    Thay vào đó, nó liên kết với MaBuoiHoc.
-    Chúng ta cần tìm MaBuoiHoc tương ứng.
-    """
+def record_attendance(ma_sv, ma_buoi_hoc, ma_trang_thai="CM"):
     conn = connect_db()
     if conn is None:
         return False
-
     try:
         cursor = conn.cursor()
+        # Lấy MaTrangThai từ TenTrangThai hoặc nếu 'DD' là mã thì dùng trực tiếp
+        # Nếu TenTrangThai lưu tên, đổi logic phù hợp. Đây ví dụ giả sử 'DD' là MaTrangThai.
+        ma_trang_thai = ma_trang_thai
 
-        # 1. Tìm MaBuoiHoc dựa trên MaLopHocPhan, NgayHoc và MaLoaiDiemDanh
-        # Cần chuyển đổi ngay_hoc từ chuỗi "%d/%m/%Y" sang date object cho SQL
-        try:
-            ngay_hoc_obj = datetime.strptime(ngay_hoc, '%d/%m/%Y').date()
-        except ValueError:
-            print(f"record_attendance: Lỗi định dạng ngày {ngay_hoc}. Cần định dạng dd/mm/YYYY.")
-            return False
-
-        query_ma_buoi_hoc = """
-            SELECT MaBuoiHoc 
-            FROM buoihoc 
-            WHERE MaLopHocPhan = %s AND NgayHoc = %s AND MaLoaiDiemDanh = %s
-            LIMIT 1
-        """
-        cursor.execute(query_ma_buoi_hoc, (ma_lop_hoc_phan, ngay_hoc_obj, ma_loai_diem_danh))
-        result_buoi_hoc = cursor.fetchone()
-
-        if not result_buoi_hoc:
-            print(f"Không tìm thấy buổi học cho lớp {ma_lop_hoc_phan}, ngày {ngay_hoc}, buổi {ma_loai_diem_danh}")
-            return False
-        
-        ma_buoi_hoc = result_buoi_hoc[0]
-
-        # 2. Lấy MaTrangThai từ TenTrangThai
-        query_ma_trang_thai = "SELECT MaTrangThai FROM trangthaidiemdanh WHERE TenTrangThai = %s"
-        cursor.execute(query_ma_trang_thai, (trang_thai,))
-        result_trang_thai = cursor.fetchone()
-        
-        if not result_trang_thai:
-            print(f"Không tìm thấy trạng thái điểm danh '{trang_thai}'.")
-            return False
-        
-        ma_trang_thai = result_trang_thai[0]
-
-        # 3. Kiểm tra xem sinh viên đã điểm danh cho buổi học này chưa
-        check_query = """
-            SELECT COUNT(*) FROM diemdanhsv
-            WHERE MaSV = %s AND MaBuoiHoc = %s
-        """
-        cursor.execute(check_query, (ma_sv, ma_buoi_hoc))
+        # Kiểm tra đã điểm danh chưa
+        cursor.execute("SELECT COUNT(*) FROM diemdanhsv WHERE MaSV=%s AND MaBuoiHoc=%s", (ma_sv, ma_buoi_hoc))
         if cursor.fetchone()[0] > 0:
-            print(f"MaSV {ma_sv} đã điểm danh cho buổi học {ma_buoi_hoc} này rồi.")
-            return False # Không điểm danh lại
+            return False
 
-        # 4. Ghi nhận điểm danh
-        insert_query = """
-            INSERT INTO diemdanhsv (MaBuoiHoc, MaSV, MaTrangThai, ThoiGianGhiNhan)
-            VALUES (%s, %s, %s, NOW())
-        """
-        cursor.execute(insert_query, (ma_buoi_hoc, ma_sv, ma_trang_thai))
+        cursor.execute("INSERT INTO diemdanhsv (MaBuoiHoc, MaSV , MaTrangThai, ThoiGianGhiNhan) VALUES (%s, %s, %s, NOW())",
+                       (ma_buoi_hoc, ma_sv, ma_trang_thai))
         conn.commit()
-        print(f"MaSV {ma_sv} đã điểm danh thành công cho buổi học {ma_buoi_hoc}.")
         return True
-    except mysql.connector.Error as err:
-        print(f"Lỗi khi ghi nhận điểm danh cho MaSV {ma_sv}: {err}")
+    except Exception as e:
+        print("record_attendance_by_ma_buoi error:", e)
         conn.rollback()
         return False
     finally:
@@ -601,3 +572,211 @@ def get_ma_loai_diem_danh(ten_loai_diem_danh):
             cursor.close()
             conn.close()
     return ma_loai
+
+
+def update_student_face_data(ma_sv, embedding_blob, image_blob, thoi_gian_cap_nhat):
+    """
+    Saves or updates a student's face data (embedding and image) in the database.
+    """
+    conn = connect_db()
+    if conn is None:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        
+        # Check if the student ID already has a face record
+        check_query = "SELECT COUNT(*) FROM dulieukhuonmat WHERE MaSV = %s"
+        cursor.execute(check_query, (ma_sv,))
+        record_exists = cursor.fetchone()[0] > 0
+
+        if record_exists:
+            # If a record exists, update it
+            update_query = """
+                UPDATE dulieukhuonmat
+                SET FaceEncoding = %s, AnhDaiDien = %s, ThoiGianTao = %s
+                WHERE MaSV = %s
+            """
+            cursor.execute(update_query, (embedding_blob, image_blob, thoi_gian_cap_nhat, ma_sv))
+            print(f"Đã cập nhật dữ liệu khuôn mặt cho MaSV {ma_sv} thành công.")
+        else:
+            # If no record exists, insert a new one
+            insert_query = """
+                INSERT INTO dulieukhuonmat (MaSV, AnhDaiDien, FaceEncoding, ThoiGianTao)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (ma_sv, image_blob, embedding_blob, thoi_gian_cap_nhat))
+            print(f"Đã thêm dữ liệu khuôn mặt mới cho MaSV {ma_sv} thành công.")
+        
+        conn.commit()
+        return True
+    
+    except mysql.connector.Error as err:
+        print(f"Lỗi khi lưu dữ liệu khuôn mặt cho MaSV {ma_sv}: {err}")
+        conn.rollback()
+        return False
+        
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+    
+def get_student_face_data(ma_sv):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT AnhDaiDien, FaceEncoding, ThoiGianTao
+        FROM dulieukhuonmat
+        WHERE MaSV=%s
+    """, (ma_sv,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_ma_buoi_hoc(class_name, subject_name, date_str, session_name):
+    """
+    Lấy MaBuoiHoc từ CSDL.
+    """
+    conn = connect_db()
+    if conn is None:
+        return None
+
+    # --- Bước 1: Phân tích chuỗi tên lớp (class_name) ---
+    # Ví dụ: "DH21TINTT01"
+    try:
+        ma_bac = class_name[0:2]          # -> "DH"
+        # MaNienKhoa trong CSDL là kiểu INT [cite: 182]
+        ma_nien_khoa = int(class_name[2:4]) # -> 21 
+        ma_nganh = class_name[4:-2]       # -> "TINTT"
+        stt_lop = class_name[-2:]         # -> "01"
+    except (IndexError, ValueError) as e:
+        # Xử lý nếu chuỗi class_name không đúng định dạng
+        print(f"Lỗi nghiêm trọng: Định dạng tên lớp '{class_name}' không hợp lệ. Không thể phân tích. Lỗi: {e}")
+        return None
+        
+    # --- Bước 2: Chuyển đổi định dạng ngày ---
+    try:
+        date_obj = datetime.strptime(date_str, "%d/%m/%Y")
+        ngay_sql = date_obj.strftime("%Y-%m-%d")
+    except (ValueError, TypeError):
+        print(f"Lỗi: Định dạng ngày không hợp lệ: {date_str}")
+        return None
+
+    ma_buoi_hoc = None
+    try:
+        cursor = conn.cursor()
+        # --- Bước 3: Truy vấn với các thành phần đã phân tích ---
+        query = """
+            SELECT bh.MaBuoiHoc
+            FROM buoihoc bh
+            JOIN lophocphan lhp ON bh.MaLopHocPhan = lhp.MaLopHocPhan
+            JOIN hocphan hp ON lhp.MaHocPhan = hp.MaHocPhan
+            JOIN loaidiemdanh ldd ON bh.MaLoaiDiemDanh = ldd.MaLoaiDiemDanh
+            WHERE lhp.MaBac = %s
+              AND lhp.MaNienKhoa = %s
+              AND lhp.MaNganh = %s
+              AND lhp.STTLop = %s
+              AND TRIM(hp.TenHocPhan) = TRIM(%s)
+              AND bh.NgayHoc = %s
+              AND TRIM(ldd.TenLoaiDiemDanh) = TRIM(%s)
+            LIMIT 1;
+        """
+        # Các tham số truyền vào phải đúng thứ tự
+        params = (ma_bac, ma_nien_khoa, ma_nganh, stt_lop, subject_name, ngay_sql, session_name)
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+
+        if result:
+            ma_buoi_hoc = result[0]
+
+    except mysql.connector.Error as err:
+        print(f"Lỗi khi truy vấn MaBuoiHoc: {err}")
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+            
+    return ma_buoi_hoc
+
+def get_total_students_by_class(class_name):
+    conn = connect_db()
+    if conn is None:
+        return None
+
+    # --- Bước 1: Phân tích chuỗi tên lớp (class_name) ---
+    # Ví dụ: "DH21TINTT01"
+    try:
+        ma_bac = class_name[0:2]          # -> "DH"
+        # MaNienKhoa trong CSDL là kiểu INT [cite: 182]
+        ma_nien_khoa = int(class_name[2:4]) # -> 21 
+        ma_nganh = class_name[4:-2]       # -> "TINTT"
+        stt_lop = class_name[-2:]         # -> "01"
+    except (IndexError, ValueError) as e:
+        # Xử lý nếu chuỗi class_name không đúng định dạng
+        print(f"Lỗi nghiêm trọng: Định dạng tên lớp '{class_name}' không hợp lệ. Không thể phân tích. Lỗi: {e}")
+        return None
+    
+    tong_sv = None
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT count(*) as TongSV
+            FROM sinhvien
+            WHERE MaBac = %s
+                    AND MaNienKhoa = %s
+                    AND MaNganh = %s
+                    AND STTLop = %s
+        """
+        # Các tham số truyền vào phải đúng thứ tự
+        params = (ma_bac, ma_nien_khoa, ma_nganh, stt_lop)
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+
+        if result:
+            tong_sv = result[0]
+
+    except mysql.connector.Error as err:
+        print(f"Lỗi khi truy vấn MaBuoiHoc: {err}")
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+    return tong_sv
+
+def get_attendace_success(MaSV, MaBuoiHoc):
+    conn = connect_db()
+    if conn is None:
+        return None
+
+    attendance_status = None
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT 
+                sv.HoTenSV,
+                ddsv.ThoiGianGhiNhan,
+                dlkm.AnhDaiDien
+            FROM 
+                sinhvien sv 
+            JOIN diemdanhsv ddsv on sv.MaSV = ddsv.MaSV
+            JOIN dulieukhuonmat dlkm on dlkm.MaSV = sv.MaSV
+            WHERE
+                    sv.MaSV = %s
+                AND ddsv.MaBuoiHoc = %s
+
+        """
+        cursor.execute(query, (MaSV, MaBuoiHoc))
+        result = cursor.fetchone()
+
+        if result:
+            attendance_status = result[0] , result[1], result[2]
+
+    except mysql.connector.Error as err:
+        print(f"Lỗi khi truy vấn trạng thái điểm danh: {err}")
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+    return attendance_status

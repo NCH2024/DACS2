@@ -32,7 +32,7 @@ class MainWindow(BaseView):
         self.setup_ui()
         
     def setup_ui(self):
-        text_var_first = tk.StringVar(value="KHOA CÔNG NGHỆ THÔNG TIN\nTRƯỜNG ĐẠI HỌC NAM CẦN THƠ\n---------------\n\nĐỒ ÁN CƠ SỞ 2")
+        text_var_first = tk.StringVar(value="KHOA CÔNG NGHỆ THÔNG TIN\nTRƯỜNG ĐẠI HỌC NAM CẦN THƠ\n---------------\n\nĐỒ ÁN 2")
         self.tittle_first_label = self.LabelFont(self.sidebar, text=text_var_first,
                                                   font=("Bahnschrift", 20, "bold"),
                                                   justify="center", bg_color="transparent",
