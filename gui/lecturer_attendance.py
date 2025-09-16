@@ -36,7 +36,8 @@ class LecturerAttendance(ctk.CTkFrame):
         # Khởi tạo biến cotroller điều khiển nhận dạng
         self.controller = MainController(
             model_path="models", 
-            sounds_path="/resources/sound"
+            sounds_path="resources\sound",
+            liveness_model_path="models\AntiSpoofing_bin_1.5_128 (2).onnx"
         )
 
         # Danh sách camera

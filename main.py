@@ -14,4 +14,4 @@ if __name__ == "__main__":
         # khởi chạy tệp cài đặt ứng dụng
         AppConfig = load_config()
         # Gọi hàm runapp để khởi chạy ứng dụng
-        runapp(config=AppConfig)                    
+        runapp(config=AppConfig)

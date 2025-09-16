@@ -1,337 +1,403 @@
 import os
 import cv2
-import numpy as np
 import threading
-import pygame
-from ultralytics import YOLO 
-from insightface.app import FaceAnalysis
-from insightface.model_zoo import get_model
-from app_face_recognition.liveness_antispoof import LivenessAntiSpoof
 import time
-import shutil
-import core.database as Db 
-import torch
+import numpy as np
 import concurrent.futures
-import collections
+import torch
+import shutil
+import pygame
+from ultralytics import YOLO
+from insightface.app import FaceAnalysis
+
+import core.database as Db
+from app_face_recognition.liveness_antispoof import LivenessAntiSpoof
 
 
 class FaceRecognitionModel:
-    def __init__(self, sounds_path, model_path):
-        self.db = Db
-        self.sounds_path = sounds_path
+    """
+    Full FaceRecognitionModel integrated with LivenessAntiSpoof (probability-based).
+    - process_frame(frame, ma_buoi_hoc=None, mode="multi_person")
+      returns (annotated_frame, newly_recognized_list, total_recognized_count)
+    """
+
+    def __init__(
+        self,
+        sounds_path,
+        model_path,
+        liveness_model_path=None,
+        device=None,
+        similarity_threshold=0.5,
+        frame_skip=5,
+    ):
         self.model_path = model_path
-        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.sounds_path = sounds_path
+        self.device = device or ("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.similarity_threshold = float(similarity_threshold)
+        self.frame_skip = int(frame_skip)
 
-        # Tải các mô hình cần thiết
-        self.check_and_download_models()
-        self.yolo_model = YOLO(os.path.join(self.model_path, "yolov8s.pt"))
+        # DB
+        self.db = Db
+
+        # models
+        self._ensure_models()
+        self.yolo = YOLO(os.path.join(self.model_path, "yolov8s.pt"))
         self.face_model = FaceAnalysis(
-            name='buffalo_l',
+            name="buffalo_l",
             root=self.model_path,
-            providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
         )
-        self.face_model.prepare(ctx_id=0, det_size=(640, 640))
-        self.liveness_model = LivenessAntiSpoof(
-            model_path=os.path.join(self.model_path, "AntiSpoofing_bin_1.5_128 (2).onnx"),
-            device=self.device
-        )
-        self.known_face_encodings, self.known_face_student_ids = Db.load_face_encodings()
-        print(f"Đã tải {len(self.known_face_encodings)} embeddings từ CSDL.")
+        try:
+            ctx_id = 0 if "cuda" in str(self.device) else -1
+            self.face_model.prepare(ctx_id=ctx_id, det_size=(640, 640))
+        except Exception:
+            pass
 
-        # Khởi tạo các biến trạng thái
+        # liveness (optional)
+        self.liveness = None
+        if liveness_model_path:
+            try:
+                self.liveness = LivenessAntiSpoof(liveness_model_path, device=self.device)
+            except Exception:
+                self.liveness = None
+
+        # known faces
+        encs, ids = self.db.load_face_encodings()
+        if isinstance(encs, list):
+            encs = np.array(encs)
+        if encs is None:
+            encs = np.zeros((0, 512), dtype=np.float32)
+            ids = []
+        self.known_face_encodings = encs
+        self.known_face_ids = ids
+
+        # runtime state
         self.recognized_students = set()
-        self.track_data = {}  # Lưu trữ thông tin của từng track_id
-        self.frame_count = 0
+        self.track_data = {}  # track_id -> info dict
+        self.lock = threading.Lock()
 
-        # Âm thanh
-        pygame.mixer.init()
-        base_dir = os.path.dirname(os.path.abspath(__file__)) 
-        self.sound_success = os.path.join(base_dir, "..", "resources", "sound", "success.wav")
-        self.sound_fail = os.path.join(base_dir, "..", "resources", "sound", "fail.wav")
+        # executor
+        self._create_executor()
 
-        # Executor cho xử lý đa luồng (InsightFace & AntiSpoof)
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count())
+        # sounds
+        try:
+            pygame.mixer.init()
+        except Exception:
+            pass
+        self.sound_success = os.path.join(self.sounds_path, "success.wav")
+        self.sound_fail = os.path.join(self.sounds_path, "fail.wav")
 
-    # ===========================
-    # KIỂM TRA + TẢI MODEL
-    # ===========================
-    def check_and_download_models(self):
+    # ---------------- helpers ----------------
+    def _ensure_models(self):
         os.makedirs(self.model_path, exist_ok=True)
-
-        # =======================
-        # 1. YOLOv8s
-        # =======================
         yolo_path = os.path.join(self.model_path, "yolov8s.pt")
         if not os.path.exists(yolo_path):
-            print("Không tìm thấy YOLOv8s, đang tải về...")
-            YOLO("yolov8s.pt")  # Ultralytics sẽ tự tải xuống
-            default_yolo = os.path.expanduser("~/.cache/torch/hub/ultralytics_yolov8")
-            # copy file .pt về dự án
-            for root, dirs, files in os.walk(default_yolo):
+            YOLO("yolov8s.pt")
+            cache_dir = os.path.expanduser("~/.cache/torch/hub/ultralytics_yolov8")
+            for root, _, files in os.walk(cache_dir):
                 for f in files:
                     if f.endswith("yolov8s.pt"):
-                        shutil.copy(os.path.join(root, f), yolo_path)
-                        print("Đã tải YOLOv8s cho ứng dụng")
+                        try:
+                            shutil.copy(os.path.join(root, f), yolo_path)
+                        except Exception:
+                            pass
                         break
 
-        # =======================
-        # 2. InsightFace buffalo_l
-        # =======================
-        insightface_dir = os.path.join(self.model_path, "buffalo_l")
-        if not os.path.exists(insightface_dir):
-            print("Không tìm thấy InsightFace, đang tải về...")
-            try:
-                # Lệnh này sẽ tải về ~/.insightface/models/buffalo_l
-                _ = get_model("buffalo_l")
-                default_dir = os.path.expanduser("~/.insightface/models/buffalo_l")
-                
-                # Sau đó sao chép từ cache vào thư mục của bạn
-                if os.path.exists(default_dir):
-                    shutil.copytree(default_dir, insightface_dir)
-                    print("Đã tải InsightFace và sao chép thành công")
-            except Exception as e:
-                print(f"Lỗi khi tải InsightFace: {e}")
-                print(f"Vui lòng tải thủ công và giải nén vào thư mục: {insightface_dir}")
-
-        
-
-    # ===========================
-    # ÂM THANH
-    # ===========================
-    def play_sound(self, sound_type):
-        sound_file = self.sound_success if sound_type == "success" else self.sound_fail
-        threading.Thread(
-            target=lambda: (pygame.mixer.music.load(sound_file), pygame.mixer.music.play()),
-            daemon=True
-        ).start()
-
-    # ===========================
-    # TÌM SINH VIÊN
-    # ===========================
-    def find_best_match(self, new_embedding):
-        similarities = np.dot(self.known_face_encodings, new_embedding) / (
-            np.linalg.norm(self.known_face_encodings, axis=1) * np.linalg.norm(new_embedding) + 1e-6
-        )
-        best_idx = np.argmax(similarities)
-        return self.known_face_student_ids[best_idx], similarities[best_idx]
-
-
-    def _update_track_info(self, track_id, info):
-        # Hàm nội bộ để cập nhật trạng thái của một track
-        self.track_data.setdefault(track_id, {}).update(info)
-
-    def _process_one_person(self, frame, ma_buoi_hoc, so_sinh_vien_trong_lop):
-        # Chế độ nhận dạng 1 người: chỉ xử lý người có bbox lớn nhất
-        largest_box = None
-        max_area = 0
-        results = self.yolo_model.track(frame, classes=0, persist=True, verbose=False, device=self.device)
-        if not results:
-            return frame, [], so_sinh_vien_trong_lop, len(self.recognized_students)
-
-        # Tìm box lớn nhất
-        for box in results[0].boxes:
-            if box.id is None: continue
-            area = (box.xyxy[0][2] - box.xyxy[0][0]) * (box.xyxy[0][3] - box.xyxy[0][1])
-            if area > max_area:
-                max_area = area
-                largest_box = box
-
-        if not largest_box:
-            return frame, [], so_sinh_vien_trong_lop, len(self.recognized_students)
-
-        # Xử lý riêng cho box lớn nhất
-        track_id = int(largest_box.id[0])
-        x1, y1, x2, y2 = largest_box.xyxy.cpu().numpy().astype(int)[0]
-        
-        _, recognized_students_frame = self._process_single_box(frame, x1, y1, x2, y2, track_id, ma_buoi_hoc)
-        
-        # Tạo bản sao của khung hình để vẽ
-        processed_frame = frame.copy()
-        
-        # Vẽ thông tin của track đang được xử lý
-        info = self.track_data.get(track_id)
-        if info and info.get('face_bbox'):
-            label = info.get('label', 'Processing...')
-            color = info.get('color', (255, 255, 0))
-            x_face, y_face, w_face, h_face = info['face_bbox']
-            cv2.rectangle(processed_frame, (x_face, y_face), (w_face, h_face), color, 1)
-            cv2.putText(processed_frame, label, (x_face, y_face - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
-
-        return processed_frame, recognized_students_frame, so_sinh_vien_trong_lop, len(self.recognized_students)
-
-    def _process_multi_person(self, frame, ma_buoi_hoc, so_sinh_vien_trong_lop):
-        # Chế độ nhận dạng nhiều người: xử lý tất cả mọi người được phát hiện
-        recognized_students_frame = []
-        
-        results = self.yolo_model.track(frame, classes=0, persist=True, verbose=False, device=self.device)
-        if not results:
-            return frame, [], so_sinh_vien_trong_lop, len(self.recognized_students)
-
-        current_track_ids = {int(box.id[0]) for result in results for box in result.boxes if box.id is not None}
-        # Xóa tất cả các track ID không còn trong khung hình hiện tại để tránh "khung ma"
-        expired_ids = [tid for tid in self.track_data if tid not in current_track_ids]
-        for tid in expired_ids:
-            del self.track_data[tid]
-            
-        for result in results:
-            for box in result.boxes:
-                if box.id is None: continue
-                track_id = int(box.id[0])
-                x1, y1, x2, y2 = box.xyxy.cpu().numpy().astype(int)[0]
-                
-                _, newly_recognized = self._process_single_box(frame, x1, y1, x2, y2, track_id, ma_buoi_hoc)
-                recognized_students_frame.extend(newly_recognized)
-        
-        processed_frame = frame.copy()
-        # Vẽ lên khung hình dựa trên dữ liệu đã được xử lý
-        for track_id, info in self.track_data.items():
-            if info.get('face_bbox'):
-                label = info.get('label', 'Processing...')
-                color = info.get('color', (255, 255, 0))
-                x_face, y_face, w_face, h_face = info['face_bbox']
-                cv2.rectangle(processed_frame, (x_face, y_face), (w_face, h_face), color, 1)
-                cv2.putText(processed_frame, label, (x_face, y_face - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
-
-        return processed_frame, recognized_students_frame, so_sinh_vien_trong_lop, len(self.recognized_students)
-
-    def _process_single_box(self, frame, x1, y1, x2, y2, track_id, ma_buoi_hoc):
-        # Hàm phụ trợ để xử lý một hộp giới hạn duy nhất
-        track_info = self.track_data.get(track_id, {})
-        
-        # Nếu track đã được xử lý xong (có nhãn cuối cùng), không cần làm gì thêm
-        if track_info.get('finalized', False):
-            return frame, [] # Không có sinh viên mới nào được nhận dạng
-
-        # Bước 1: Lấy kết quả Liveness nếu có
-        is_live = self.liveness_model.get_result(track_id)
-
-        if is_live:
-            tid, live_flag = is_live
-            if live_flag is False:
-                # Nếu là FAKE, cập nhật trạng thái và kết thúc
-                self._update_track_info(tid, {'label': "FAKE", 'color': (0, 0, 255), 'finalized': True})
-                return frame, []
-            elif live_flag is True:
-                # Nếu là REAL, tiến hành nhận dạng
-                face = track_info.get('face_object')
-                if face:
-                    embedding = face.embedding
-                    best_match_id, similarity = self.find_best_match(embedding)
-                    
-                    if similarity > 0.5:
-                        label = f"MSV: {best_match_id}"
-                        color = (0, 255, 0)
-                        newly_recognized = []
-                        if best_match_id not in self.recognized_students:
-                            self.recognized_students.add(best_match_id)
-                            self.db.record_attendance(best_match_id, ma_buoi_hoc, "CM")
-                            newly_recognized = [best_match_id]
-                        self._update_track_info(tid, {'label': label, 'color': color, 'finalized': True})
-                        return frame, newly_recognized
-                    else:
-                        label = "Unknown person"
-                        color = (128, 0, 255)
-                        self._update_track_info(tid, {'label': label, 'color': color, 'finalized': True})
-                        return frame, []
-        
-        # Bước 2: Nếu chưa có kết quả liveness hoặc chưa bắt đầu, thì tiến hành phát hiện khuôn mặt
-        if not track_info.get('liveness_submitted'):
-            person_crop = frame[y1:y2, x1:x2]
-            faces = self.face_model.get(person_crop)
-            
-            if faces and len(faces) == 1:
-                face = faces[0]
-                face_crop = person_crop[int(face.bbox[1]):int(face.bbox[3]), int(face.bbox[0]):int(face.bbox[2])]
-                face_bbox = (int(face.bbox[0]) + x1, int(face.bbox[1]) + y1, int(face.bbox[2]) + x1, int(face.bbox[3]) + y1)
-
-                # Cập nhật thông tin và gửi đi kiểm tra liveness
-                self._update_track_info(track_id, {
-                    'face_bbox': face_bbox, 
-                    'label': 'Processing...', 
-                    'color': (255, 255, 0),
-                    'liveness_submitted': True,
-                    'face_object': face # Lưu lại đối tượng face để dùng sau
-                })
-                self.liveness_model.submit(track_id, face_crop)
-
-        return frame, [] # Mặc định không có sinh viên mới
-
-    def process_frame(self, frame, ma_buoi_hoc, so_sinh_vien_trong_lop, mode='multi_person'):
-        self.frame_count += 1
-        
-        if mode == 'one_person':
-            return self._process_one_person(frame, ma_buoi_hoc, so_sinh_vien_trong_lop)
-        elif mode == 'multi_person':
-            return self._process_multi_person(frame, ma_buoi_hoc, so_sinh_vien_trong_lop)
-        else:
-            raise ValueError("Chế độ không hợp lệ. Vui lòng chọn 'one_person' hoặc 'multi_person'.")
-
-    # ===========================
-    # TRAINING KHUÔN MẶT
-    # ===========================
-    def train_face(self, student_id, frame_generator, mode="quick"):
-        """
-        Đào tạo dữ liệu khuôn mặt cho một sinh viên.
-        
-        Args:
-            student_id: Mã số sinh viên (int).
-            frame_generator: Iterator cung cấp các khung hình từ camera.
-            mode: "deep" (50 ảnh) hoặc "quick" (10 ảnh).
-        """
-        if getattr(self, "is_training_in_progress", False):
-            print("Một tiến trình train đang chạy. Vui lòng thử lại sau.")
-            return False, "training_in_progress"
-        # if self.first_open:
-        #     time.sleep(3)
-        #     self.first_open = False
-
-        self.is_training_in_progress = True
-        num_images_needed = 50 if mode == "deep" else 10
-        collected_embeddings = []
-        avatar_frame = None
-        count = 0
-
+    def _create_executor(self):
         try:
-            for frame in frame_generator:
-                if count >= num_images_needed:
-                    break
+            if getattr(self, "executor", None) is None or getattr(self.executor, "_shutdown", False):
+                self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 2)
+                self.processing_futures = {}
+        except Exception:
+            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+            self.processing_futures = {}
 
+    def _safe_play_sound(self, kind="success"):
+        file = self.sound_success if kind == "success" else self.sound_fail
+        try:
+            if os.path.exists(file):
+                threading.Thread(target=lambda: (pygame.mixer.music.load(file), pygame.mixer.music.play()), daemon=True).start()
+        except Exception:
+            pass
+
+    def _find_best_match(self, embedding):
+        if self.known_face_encodings.shape[0] == 0:
+            return None, 0.0
+        denom = (np.linalg.norm(self.known_face_encodings, axis=1) * (np.linalg.norm(embedding) + 1e-8)) + 1e-12
+        sims = np.dot(self.known_face_encodings, embedding) / denom
+        idx = int(np.argmax(sims))
+        return self.known_face_ids[idx], float(sims[idx])
+
+    def reload_known_faces(self):
+        encs, ids = self.db.load_face_encodings()
+        if isinstance(encs, list):
+            encs = np.array(encs)
+        if encs is None:
+            encs = np.zeros((0, 512), dtype=np.float32)
+            ids = []
+        with self.lock:
+            self.known_face_encodings = encs
+            self.known_face_ids = ids
+
+    # ---------------- lifecycle ----------------
+    def stop(self):
+        # cancel pending futures
+        for f in list(getattr(self, "processing_futures", {}).values()):
+            try:
+                f.cancel()
+            except Exception:
+                pass
+
+        # shutdown executor
+        try:
+            if getattr(self, "executor", None):
+                self.executor.shutdown(wait=False)
+        except Exception:
+            pass
+
+        with self.lock:
+            self.track_data.clear()
+            self.recognized_students.clear()
+            self.processing_futures = {}
+
+        # recreate executor for next start
+        try:
+            self._create_executor()
+        except Exception:
+            pass
+
+    # ---------------- public ----------------
+    def process_frame(self, frame, ma_buoi_hoc=None, mode="multi_person"):
+        self._create_executor()
+        if mode == "one_person":
+            return self.process_frame_one_person(frame, ma_buoi_hoc)
+        else:
+            return self.process_frame_multi_person(frame, ma_buoi_hoc)
+
+    def process_frame_one_person(self, frame, ma_buoi_hoc=None):
+        return self._generic_process(frame, ma_buoi_hoc, single=True)
+
+    def process_frame_multi_person(self, frame, ma_buoi_hoc=None):
+        return self._generic_process(frame, ma_buoi_hoc, single=False)
+
+    # ---------------- core pipeline ----------------
+    def _generic_process(self, frame, ma_buoi_hoc, single=False):
+        results = self.yolo.track(frame, classes=0, persist=True, verbose=False, device=self.device)
+        boxes = results[0].boxes if results and results[0].boxes is not None else []
+
+        # collect current ids
+        current_ids = set()
+        for b in boxes:
+            if b.id is None:
+                continue
+            try:
+                current_ids.add(int(b.id[0]))
+            except Exception:
+                pass
+
+        # cleanup tracks left frame
+        with self.lock:
+            for tid in list(self.track_data.keys()):
+                if tid not in current_ids:
+                    fut = self.processing_futures.pop(tid, None)
+                    if fut:
+                        try:
+                            fut.cancel()
+                        except Exception:
+                            pass
+                    self.track_data.pop(tid, None)
+
+        # select targets
+        if single and boxes:
+            largest = max(boxes, key=lambda b: ((b.xyxy[0][2] - b.xyxy[0][0]) * (b.xyxy[0][3] - b.xyxy[0][1])))
+            target_boxes = [largest] if largest.id is not None else []
+        else:
+            target_boxes = [b for b in boxes if b.id is not None]
+
+        h, w = frame.shape[:2]
+        for b in target_boxes:
+            try:
+                tid = int(b.id[0])
+            except Exception:
+                continue
+            xy = b.xyxy.cpu().numpy().astype(int)[0]
+            x1, y1, x2, y2 = xy
+            with self.lock:
+                info = self.track_data.setdefault(
+                    tid,
+                    {"frame_count": 0, "label": "Detecting...", "face_bbox": None, "color": (255, 255, 0), "newly_recognized": False, "person_bbox": (x1, y1, x2, y2)},
+                )
+                info["person_bbox"] = (x1, y1, x2, y2)
+                info["frame_count"] += 1
+                submit_now = (info["frame_count"] % self.frame_skip == 0)
+
+            if submit_now:
+                cx1, cy1 = max(0, x1), max(0, y1)
+                cx2, cy2 = min(w, x2), min(h, y2)
+                crop = frame[cy1:cy2, cx1:cx2]
+                if getattr(self, "executor", None) is not None:
+                    fut = self.processing_futures.get(tid)
+                    if fut is None or fut.done():
+                        try:
+                            self.processing_futures[tid] = self.executor.submit(self._recognize_worker, tid, crop.copy(), (cx1, cy1, cx2, cy2), ma_buoi_hoc, single)
+                        except RuntimeError:
+                            pass
+
+        # collect finished futures
+        for tid, fut in list(self.processing_futures.items()):
+            if fut.done():
+                try:
+                    res = fut.result()
+                    if res:
+                        with self.lock:
+                            self.track_data[tid].update(res)
+                except Exception:
+                    pass
+                finally:
+                    self.processing_futures.pop(tid, None)
+
+        # draw frame: draw person box (no text) and draw face box + label only if available
+        out = frame.copy()
+        newly_ids = []
+        with self.lock:
+            for tid, info in self.track_data.items():
+                px1, py1, px2, py2 = info.get("person_bbox", (0, 0, 0, 0))
+                cv2.rectangle(out, (px1, py1), (px2, py2), (100, 100, 100), 1)
+                label = info.get("label", "Detecting...")
+                color = info.get("color", (255, 255, 0))
+                fb = info.get("face_bbox")
+                if fb:
+                    fx1, fy1, fx2, fy2 = fb
+                    cv2.rectangle(out, (fx1, fy1), (fx2, fy2), color, 2)
+                    cv2.putText(out, label, (fx1, fy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
+                if info.get("newly_recognized"):
+                    lbl = info.get("label", "")
+                    if lbl.startswith("MSV:"):
+                        try:
+                            sid = int(lbl.split(":", 1)[1].strip())
+                            newly_ids.append(sid)
+                        except Exception:
+                            pass
+                    info["newly_recognized"] = False
+
+        return out, newly_ids, len(self.recognized_students)
+
+    # ---------------- recognition worker ----------------
+    def _recognize_worker(self, track_id, person_crop, person_bbox_abs, ma_buoi_hoc, single_mode):
+        try:
+            faces = self.face_model.get(person_crop)
+            if not faces:
+                return {"label": "NoFace", "color": (128, 128, 128), "face_bbox": None}
+
+            face = max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
+
+            fx1 = int(face.bbox[0]) + person_bbox_abs[0]
+            fy1 = int(face.bbox[1]) + person_bbox_abs[1]
+            fx2 = int(face.bbox[2]) + person_bbox_abs[0]
+            fy2 = int(face.bbox[3]) + person_bbox_abs[1]
+
+            bx1, by1, bx2, by2 = (
+                max(0, int(face.bbox[0])),
+                max(0, int(face.bbox[1])),
+                min(person_crop.shape[1], int(face.bbox[2])),
+                min(person_crop.shape[0], int(face.bbox[3])),
+            )
+            face_crop = person_crop[by1:by2, bx1:bx2]
+            emb = face.embedding
+
+            # liveness: submit and poll short times for probability
+            live_prob = None
+            if self.liveness:
+                try:
+                    self.liveness.submit(track_id, face_crop)
+                    for _ in range(4):
+                        res = self.liveness.get_result(track_id)
+                        if res is not None:
+                            live_prob = float(res)
+                            break
+                        time.sleep(0.03)
+                except Exception:
+                    live_prob = None
+
+            # interpret probability
+            is_live = None
+            if live_prob is not None:
+                if live_prob >= 0.60:
+                    is_live = True
+                elif live_prob <= 0.35:
+                    is_live = False
+                else:
+                    is_live = None
+
+            # recognition
+            best_id, sim = self._find_best_match(emb)
+            if best_id is not None and sim >= self.similarity_threshold:
+                newly = False
+
+                if (self.liveness is None) or (is_live is True):
+                    with self.lock:
+                        if best_id not in self.recognized_students:
+                            self.recognized_students.add(best_id)
+                            newly = True
+                    try:
+                        if ma_buoi_hoc is not None:
+                            self.db.record_attendance(int(best_id), ma_buoi_hoc, "CM")
+                    except Exception:
+                        pass
+                else:
+                    if is_live is False:
+                        return {"label": f"FAKE ({live_prob:.2f})", "color": (0, 0, 255), "face_bbox": (fx1, fy1, fx2, fy2)}
+                    if is_live is None:
+                        return {"label": f"UNCERTAIN ({(live_prob or 0):.2f})", "color": (0, 255, 255), "face_bbox": (fx1, fy1, fx2, fy2)}
+
+                if newly and single_mode:
+                    self._safe_play_sound("success")
+
+                return {"label": f"MSV: {best_id}", "color": (0, 255, 0), "face_bbox": (fx1, fy1, fx2, fy2), "newly_recognized": newly}
+            else:
+                return {"label": "UNKNOWN", "color": (128, 0, 255), "face_bbox": (fx1, fy1, fx2, fy2)}
+        except Exception:
+            return {"label": "ERR", "color": (0, 0, 255), "face_bbox": None}
+
+    # ---------------- training ----------------
+    def train_face(self, student_id, frame_generator, mode="quick"):
+        if getattr(self, "is_training_in_progress", False):
+            yield -1, "training_in_progress"
+            return
+        self.is_training_in_progress = True
+        try:
+            needed = 50 if mode == "deep" else 10
+            collected = []
+            avatar = None
+            i = 0
+            for frame in frame_generator:
+                if i >= needed:
+                    break
                 faces = self.face_model.get(frame)
                 if faces and len(faces) == 1:
                     face = faces[0]
-                    embedding = face.embedding
-                    collected_embeddings.append(embedding)
-
-                    # Chọn avatar ở giữa tiến trình
-                    if avatar_frame is None and count == num_images_needed // 2:
+                    collected.append(face.embedding)
+                    if avatar is None and i == needed // 2:
                         x1, y1, x2, y2 = face.bbox.astype(int)
-                        x1 = max(0, x1)
-                        y1 = max(0, y1)
-                        x2 = min(frame.shape[1], x2)
-                        y2 = min(frame.shape[0], y2)
-                        avatar_frame = frame[y1:y2, x1:x2]
-
-                    count += 1
-                    yield count, num_images_needed  # báo tiến độ về giao diện
-
-        except Exception as e:
-            print(f"❌ Lỗi trong quá trình training: {e}")
-            self.is_training_in_progress = False
-            yield -1, f"error: {e}"
-            return
-
-        self.is_training_in_progress = False
-
-        if count >= num_images_needed and avatar_frame is not None:
-            mean_embedding = np.mean(collected_embeddings, axis=0)
-
-            success = self.save_face_data(int(student_id), mean_embedding, avatar_frame)
-
-            if success:
-                # Reload embeddings
-                self.known_face_encodings, self.known_face_student_ids = Db.load_face_encodings()
+                        x1, y1 = max(0, x1), max(0, y1)
+                        x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
+                        avatar = frame[y1:y2, x1:x2]
+                    i += 1
+                    yield i, needed
+            if i < needed:
+                yield -1, "not_enough_images"
+                return
+            mean_emb = np.mean(np.stack(collected, axis=0), axis=0)
+            ok = False
+            try:
+                ok = self.db.save_face_data(int(student_id), mean_emb, avatar)
+            except Exception:
+                ok = False
+            if ok:
+                self.reload_known_faces()
                 yield 100, "success"
             else:
                 yield 100, "db_error"
-        else:
-            yield -1, "not_enough_images"
+        finally:
+            self.is_training_in_progress = False
