@@ -8,6 +8,7 @@ DESCRIPTION:
         + Các hàm này sẽ được sử dụng để hỗ trợ cho các model và controller
 VERSION: 1.0.0
 '''
+from socket import timeout
 import mysql.connector
 from core.utils import *
 from PIL import Image
@@ -15,6 +16,7 @@ from datetime import datetime, timedelta
 import io
 import pickle
 import numpy as np
+from mysql.connector import Error
 
 DB_CONFIG = {
         'host': 'localhost',
@@ -34,6 +36,26 @@ def connect_db():
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         return None
+# ĐOẠN KẾT NỐI DƯỚI ĐÂY ĐANG THỬ NGHIỆM CHO CLOUD DATABASE AIVEN (Do vẫn còn lỗi nên chưa áp dụng thực tế)
+# DB_CONFIG = {
+#     'host': 'mysql-bd31deb-chanhhiep-04d9.k.aivencloud.com',
+#     'user': 'avnadmin',
+#     'password': 'AVNS_fYJ141qHPpEqOQlsKk1',
+#     'database': 'da2',
+#     'port': 25447,
+#     'ssl_disabled': False
+# }
+
+# def connect_db():
+#     try:
+#         connection = mysql.connector.connect(**DB_CONFIG)
+#         if connection.is_connected():
+#             return connection
+#     except Error as err:
+#         print(f"Database connection error: {err}")
+#         return None
+
+
     
 def login(username, password):
     conn = connect_db()
@@ -46,6 +68,8 @@ def login(username, password):
         return False
 
     user_id, bcrypt_password, role = result
+        
+    print(f"user_id: {user_id}, role: {role}")
 
     if check_password(password, bcrypt_password):
         return user_id, role
@@ -103,7 +127,7 @@ def get_thongbao():
 def get_schedule(tendangnhap):
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM View_LichPhanCong WHERE TenDangNhap = %s;", (tendangnhap, ))
+    cursor.execute("SELECT * FROM view_lichphancong WHERE TenDangNhap = %s;", (tendangnhap, ))
     data = []
     
     for row in cursor.fetchall():
