@@ -35,10 +35,16 @@ class ThresholdSecurity:
 # --- PHẦN MỚI ---
 @dataclass
 class DatabaseConfig:
-    host: str = "localhost"
-    port: int = 3306
-    username: str = "root"
-    password: str = "1234"
+    # host: str = "localhost"
+    # port: int = 3306
+    # username: str = "root"
+    # password: str = "1234"
+    # database_name: str = "da2" #ĐÂY LÀ KẾT NỐI CỤC BỘ
+    
+    host: str = "mysql-bd31deb-chanhhiep-04d9.k.aivencloud.com"
+    port: int = 25447
+    username: str = "avnadmin"
+    password: str = "AVNS_fYJ141qHPpEqOQlsKk1"
     database_name: str = "da2"
 # --- KẾT THÚC PHẦN MỚI ---
 

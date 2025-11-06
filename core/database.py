@@ -198,7 +198,8 @@ def get_thongbao():
                 print(f"Lỗi khi mở ảnh thông báo (ID: {thongbao_id}): {e}. Bỏ qua ảnh này.")
         else:
             image = None
-            results.append((thongbao_id, title, content, ngay_dang, image))
+        
+        results.append((thongbao_id, title, content, ngay_dang, image))
 
     cursor.close()
     conn.close()

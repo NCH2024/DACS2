@@ -17,6 +17,13 @@ class AdminNotice(BaseFrame):
         super().__init__(master, **kwargs)
         self.user = user
         self.set_label_title("Dashboard > Trang Chủ > QUẢN LÝ THÔNG BÁO")
+        
+        try:
+            self.temp_notice_dir = os.path.join(get_base_path(), "resources", "temp_notice_images")
+            os.makedirs(self.temp_notice_dir, exist_ok=True)
+        except Exception as e:
+            print(f"Không thể tạo thư mục tạm: {e}")
+            self.temp_notice_dir = "." # Fallback
 
         # --- Trạng thái ---
         self.selected_notice_id = None
@@ -120,7 +127,6 @@ class AdminNotice(BaseFrame):
         self.notice_table.bind("<<TreeviewSelect>>", self._select_notice_tree)
 
 
-    # ... (_load_notice_data, _clear_notice_table giữ nguyên) ...
     def _load_notice_data(self):
         """Tải dữ liệu thông báo lên Treeview."""
         self._clear_notice_table()
@@ -142,72 +148,148 @@ class AdminNotice(BaseFrame):
         for item in self.notice_table.get_children(): self.notice_table.delete(item)
         self.notice_image_blobs = {} 
         
-    # --- THAY THẾ HÀM NÀY ---
     def _remove_image(self):
-        """Xóa ảnh đang preview và đảm bảo cập nhật UI."""
+        """Xóa ảnh đang preview, dọn dẹp file tạm và cập nhật UI."""
         self.current_image_pil = None
         self.current_image_blob = None
-        self.current_ctk_image = None # <<< Xóa tham chiếu CTkImage
+        old_ctk_image = self.current_ctk_image
+        self.current_ctk_image = None 
+
         if self.image_preview_label and self.image_preview_label.winfo_exists():
             try:
-                # Quan trọng: Configure trước khi gọi update_idletasks
                 self.image_preview_label.configure(image=None, text="Chưa có ảnh")
-                # Không cần gán self.image_preview_label.image = None nữa
-                self.update_idletasks() # <<< Ép Tkinter cập nhật ngay
+                self.update_idletasks()
             except tk.TclError as e:
                  print(f"Lỗi khi cấu hình label trong _remove_image: {e}")
 
-    # --- THAY THẾ HÀM NÀY ---
+        # Dọn dẹp file preview tạm
+        try:
+            # Thử xóa file dựa trên ID đang chọn (nếu có)
+            if self.selected_notice_id:
+                 filename = f"notice_{self.selected_notice_id}_preview.png"
+                 temp_path = os.path.join(self.temp_notice_dir, filename)
+                 if os.path.exists(temp_path):
+                     os.remove(temp_path)
+            
+            # Luôn thử xóa file "temp_selected" (dùng khi chọn file mới)
+            temp_selected_path = os.path.join(self.temp_notice_dir, "temp_selected_preview.png")
+            if os.path.exists(temp_selected_path):
+                os.remove(temp_selected_path)
+            
+            # Luôn thử xóa file "temp_blob" (dùng khi có lỗi)
+            temp_blob_path = os.path.join(self.temp_notice_dir, "temp_blob_preview.png")
+            if os.path.exists(temp_blob_path):
+                os.remove(temp_blob_path)
+                
+        except Exception as e:
+            print(f"Lỗi khi xóa file ảnh tạm: {e}")
+        
+        if old_ctk_image:
+            del old_ctk_image
+
+
+
     def _display_image_preview(self, image_source):
-        """Hiển thị ảnh (từ PIL hoặc BLOB) lên label preview."""
+        """
+        Hiển thị ảnh (từ PIL hoặc BLOB) lên label preview.
+        Ý tưởng: Lưu ảnh ra file tạm rồi tải lại từ file đó.
+        """
         if not hasattr(self, 'image_preview_label') or not self.image_preview_label or not self.image_preview_label.winfo_exists():
-            print("Warning: image_preview_label không tồn tại hoặc chưa được khởi tạo.")
+            print("Warning: image_preview_label không tồn tại.")
             return
 
         img_to_display_pil = None
-        new_ctk_image = None # Tạo biến cục bộ cho CTkImage mới
+        new_ctk_image = None
+        saved_path = None # Đường dẫn file tạm
 
         try:
+            # Xác định tên file và tạo đối tượng PIL
             if isinstance(image_source, Image.Image):
-                img_to_display_pil = image_source
+                # Nguồn là file dialog (_select_image)
+                img_to_display_pil = image_source.copy()
+                saved_path = os.path.join(self.temp_notice_dir, "temp_selected_preview.png")
+
             elif isinstance(image_source, bytes) and image_source:
-                try:
-                    img_to_display_pil = Image.open(BytesIO(image_source))
-                except Exception as e:
-                    print(f"Lỗi khi mở ảnh từ BLOB để preview: {e}. Hiển thị ảnh rỗng.")
-                    img_to_display_pil = None # Đặt về None để không hiển thị ảnh lỗi
+                # Nguồn là BLOB từ DB (_select_notice_tree)
+                if not self.selected_notice_id:
+                    filename = "temp_blob_preview.png"
+                else:
+                    filename = f"notice_{self.selected_notice_id}_preview.png"
+                
+                saved_path = os.path.join(self.temp_notice_dir, filename)
+                img_to_display_pil = Image.open(BytesIO(image_source))
+
             else:
-                self._remove_image()
+                self._remove_image() # Không có ảnh
                 return
 
-            if img_to_display_pil:
+            # Lưu file ảnh PIL xuống đĩa
+            if img_to_display_pil and saved_path:
+                try:
+                    img_save = img_to_display_pil.copy()
+                    if img_save.mode == 'RGBA':
+                        img_save = img_save.convert('RGB')
+                    img_save.save(saved_path, format='PNG')
+                except Exception as e:
+                    print(f"Lỗi khi lưu ảnh preview tạm thời: {e}")
+                    saved_path = None # Nếu lỗi thì fallback
+            else:
+                saved_path = None
+
+            # *** LOGIC QUAN TRỌNG: Tải lại ảnh từ file đã lưu (nếu thành công) ***
+            if saved_path and os.path.exists(saved_path):
                 preview_height = 150
-                if img_to_display_pil.height == 0: raise ValueError("Chiều cao ảnh bằng 0.")
-                ratio = preview_height / img_to_display_pil.height
-                preview_width = int(img_to_display_pil.width * ratio)
+                
+                # Sử dụng ImageProcessor để tải và xử lý từ ĐƯỜNG DẪN
+                img_processor = ImageProcessor(saved_path)
+                
+                # === SỬA LỖI TẠI ĐÂY ===
+                # Giả định ImageProcessor tải ảnh vào thuộc tính 'image'
+                if not hasattr(img_processor, 'image') or img_processor.image is None:
+                    raise ValueError("ImageProcessor không tải được ảnh từ file tạm")
+                
+                # Lấy kích thước từ thuộc tính .size của ảnh PIL, không phải .get_size()
+                original_width, original_height = img_processor.image.size 
+                # ======================
+
+                if original_height == 0: raise ValueError("Chiều cao ảnh bằng 0.")
+                
+                ratio = preview_height / original_height
+                preview_width = int(original_width * ratio)
                 if preview_width <= 0: preview_width = 1
 
-                img_copy = img_to_display_pil.copy()
-                
-                # Tạo CTkImage mới
-                new_ctk_image = ImageProcessor(img_copy).resize(preview_width, preview_height).to_ctkimage()
+                # Tạo CTkImage mới từ processor (đã chứa ảnh)
+                new_ctk_image = img_processor.resize(preview_width, preview_height).to_ctkimage()
 
-                # <<< LƯU THAM CHIẾU VÀO self.current_ctk_image TRƯỚC >>>
-                self.current_ctk_image = new_ctk_image 
-
-                # Sau đó mới configure label
+                self.current_ctk_image = new_ctk_image
                 self.image_preview_label.configure(image=self.current_ctk_image, text="")
-                # Không cần gán self.image_preview_label.image nữa
                 
-                self.current_image_pil = img_to_display_pil # Lưu PIL gốc để convert lại nếu cần
+                # Vẫn lưu PIL gốc để dùng cho việc CẬP NHẬT DB
+                self.current_image_pil = img_to_display_pil
+            
             else:
-                self._remove_image()
+                # Fallback: Nếu lưu file lỗi, dùng logic cũ (in-memory)
+                if img_to_display_pil:
+                    print("Fallback: Lưu file lỗi, sử dụng logic in-memory.")
+                    preview_height = 150
+                    if img_to_display_pil.height == 0: raise ValueError("Chiều cao ảnh bằng 0.")
+                    ratio = preview_height / img_to_display_pil.height
+                    preview_width = int(img_to_display_pil.width * ratio)
+                    if preview_width <= 0: preview_width = 1
+                    
+                    img_copy = img_to_display_pil.copy()
+                    # Khởi tạo ImageProcessor từ đối tượng PIL
+                    new_ctk_image = ImageProcessor(img_copy).resize(preview_width, preview_height).to_ctkimage()
+                    self.current_ctk_image = new_ctk_image
+                    self.image_preview_label.configure(image=self.current_ctk_image, text="")
+                    self.current_image_pil = img_to_display_pil
+                else:
+                    self._remove_image()
 
         except Exception as e:
              messagebox.showerror("Lỗi Hiển Thị Ảnh", f"Lỗi khi tạo ảnh preview: {e}", parent=self)
              self._remove_image()
-
-    # ... (_select_notice_tree, _clear_notice_form, _select_image, _convert_pil_to_blob, _add_notice, _update_notice, _delete_notice giữ nguyên) ...
+        
     def _select_notice_tree(self, event=None):
         """Hiển thị thông tin thông báo đã chọn lên form."""
         selected_item_id = self.notice_table.focus() 
@@ -237,10 +319,14 @@ class AdminNotice(BaseFrame):
 
     def _clear_notice_form(self):
         """Xóa trắng form quản lý thông báo."""
+        
+        # Gọi _remove_image TRƯỚC khi set self.selected_notice_id = None
+        # để nó có thể tìm và xóa đúng file temp
+        self._remove_image() 
+        
         self.selected_notice_id = None
         self.notice_title_entry.delete(0, "end")
         self.notice_content_textbox.delete("1.0", "end")
-        self._remove_image() # <<< Gọi hàm _remove_image đã sửa
         
         if self.notice_table.focus():
             self.notice_table.selection_remove(self.notice_table.focus())

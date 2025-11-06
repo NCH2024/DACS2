@@ -7,6 +7,8 @@ from gui.admin.admin_notice import AdminNotice
 from gui.base.utils import *
 from gui.base.base_chart import *
 import core.database as Db
+from core.utils import get_base_path
+import os
 
 
 class AdminGeneral(ctk.CTkFrame):
@@ -85,16 +87,20 @@ class AdminGeneral(ctk.CTkFrame):
 
         # ===== GỌI PHẦN THỐNG KÊ Ở ĐÂY =====
         self.create_overview_section()
-
+        path_adminStudentManager = os.path.join(get_base_path(), "resources","images","students.png")
+        path_adminLectuterManager = os.path.join(get_base_path(), "resources","images","teacher.png")
+        path_adminAcademicManager = os.path.join(get_base_path(), "resources","images","class.png")
+        path_adminNoticeManager = os.path.join(get_base_path(), "resources","images","notice.png")
+        
         dataButton_left = [
-            ("resources/images/students.png", "SINH VIÊN•LỚP", lambda: self.show_AdminStudentsManager()),
-            ("resources/images/teacher.png", "GIẢNG VIÊN•KHOA", lambda: self.show_AdminLecturerManager()),
+            (path_adminStudentManager, "SINH VIÊN•LỚP", lambda: self.show_AdminStudentsManager()),
+            (path_adminLectuterManager, "GIẢNG VIÊN•KHOA", lambda: self.show_AdminLecturerManager()),
             # ("resources/images/class.png", "LỚP HỌC PHẦN", None),
         ]
         dataButton_right = [
-            ("resources/images/class.png", "HỌC VỤ", lambda: self.show_AdminAcademic()),
+            (path_adminAcademicManager, "HỌC VỤ", lambda: self.show_AdminAcademic()),
             # ("resources/images/schedule.png", "LỊCH HỌC", None),
-            ("resources/images/notice.png", "THÔNG BÁO", lambda: self.show_AdminNotice()),
+            (path_adminNoticeManager, "THÔNG BÁO", lambda: self.show_AdminNotice()),
         ]
 
         self.center_frame = ctk.CTkFrame(self, fg_color="transparent")

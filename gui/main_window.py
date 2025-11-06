@@ -32,6 +32,8 @@ class MainWindow(BaseView):
         self.bg_label = ctk.CTkLabel(self.content, image=self.bg_ctkimage, text="")
         self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
         self.setup_ui()
+        self.password_entry.bind("<Return>", lambda event: self.start_login_process())
+        
         
     def setup_ui(self):
         text_var_first = tk.StringVar(value="KHOA CÔNG NGHỆ THÔNG TIN\nTRƯỜNG ĐẠI HỌC NAM CẦN THƠ\n---------------\n\nĐỒ ÁN 2")
@@ -75,6 +77,8 @@ class MainWindow(BaseView):
                                                   justify="center", bg_color="transparent",
                                                   width=400, height=80, text_color="white")
         self.tittle_second_label.place(relx=0.5, rely=0.9, anchor="center")
+        
+        
         
 
     # --- HÀM MỚI ĐỂ XỬ LÝ ĐĂNG NHẬP THỦ CÔNG ---
