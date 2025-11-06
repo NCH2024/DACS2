@@ -124,7 +124,7 @@ class CheckConfigAttendance(ctk.CTkFrame):
                 sounds_path=os.path.join(base_path, "resources", "sound"),
                 liveness_model_path=os.path.join(base_path, "models", "AntiSpoofing_bin_1.5_128.onnx"),
                 app_config=self.appconfig,
-                dialog=self.loading_dialog 
+                dialog=self.loading_dialog
             )
 
             # Controller đã tự load xong, giờ chỉ việc báo hoàn thành

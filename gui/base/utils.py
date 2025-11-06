@@ -114,10 +114,19 @@ class ImageProcessor:
     def get_pil_image(self):
         return self.image
     
+    # (Code này nằm trong class ImageProcessor, file gui/base/utils.py)
+
     def save_to_dir(self, filename, directory="image_student"):  
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        full_path = os.path.join(directory, filename)
+        # SỬA LỖI: Luôn sử dụng get_base_path() làm gốc
+        base_path = get_base_path()
+        # Nối đường dẫn gốc với thư mục mặc định
+        full_directory_path = os.path.join(base_path, directory)
+
+        # Phần còn lại giữ nguyên
+        if not os.path.exists(full_directory_path):
+            os.makedirs(full_directory_path)
+
+        full_path = os.path.join(full_directory_path, filename)
         self.image.save(full_path)
         return full_path
     

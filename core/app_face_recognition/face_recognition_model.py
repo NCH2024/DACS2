@@ -101,7 +101,7 @@ class FaceRecognitionModel:
         try:
             os.makedirs(self.model_path, exist_ok=True)
 
-            yolo_path = os.path.join(self.model_path, "yolo11l.pt")
+            yolo_path = os.path.join(self.model_path, "yolov8n.pt")
             insight_root = os.path.join(self.model_path, "models_insightface")
             insight_path = os.path.join(insight_root, "buffalo_l")
 
@@ -122,7 +122,7 @@ class FaceRecognitionModel:
             # --- YOLO ---
             if not os.path.exists(yolo_path):
                 update("Đang tải YOLO...", 0.2)
-                model = YOLO("yolo11l.pt")  # tự tải về từ ultralytics
+                model = YOLO("yolov8n.pt")  # tự tải về từ ultralytics
                 try:
                     src = getattr(model, "ckpt_path", None)
                     if src and os.path.exists(src):
@@ -144,7 +144,7 @@ class FaceRecognitionModel:
                 update("Đã có InsightFace.", 0.8)
 
             # --- Khởi tạo thực tế ---
-            yolo_abs = os.path.join(self.model_path, "yolo11l.pt")
+            yolo_abs = os.path.join(self.model_path, "yolov8n.pt")
             self.yolo = YOLO(yolo_abs)
             ctx_id = 0 if "cuda" in str(self.device) else -1
             self.face_model = FaceAnalysis(name="buffalo_l", root=self.model_path)
@@ -269,7 +269,7 @@ class FaceRecognitionModel:
             print("[ERROR] Mô hình chưa được khởi tạo đầy đủ.")
             return frame, [], 0
         
-        results = self.yolo.track(frame, classes=0, persist=True, verbose=False, device=self.device)
+        results = self.yolo.track(frame, tracker='bytetrack.yaml', imgsz=320, classes=0, persist=True, verbose=False, device=self.device)
         boxes = results[0].boxes if results and results[0].boxes is not None else []
 
         # collect current ids

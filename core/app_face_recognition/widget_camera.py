@@ -4,6 +4,7 @@ from PIL import Image
 from customtkinter import CTkImage
 from core.app_face_recognition.camera_setup import CameraManager
 from tkinter import messagebox
+from core.utils import get_base_path
 import cv2
 
 class WidgetCamera(ctk.CTkFrame):
@@ -44,7 +45,7 @@ class WidgetCamera(ctk.CTkFrame):
             self.widget_groupBtn.grid_columnconfigure(1, weight=1)
             
             try:
-                exit_img = Image.open("resources/images/cross.png")
+                exit_img = Image.open(os.path.jion(get_base_path(),"resources/images/cross.png"))
                 self.exit_img = ImageProcessor(exit_img).to_ctkimage()
             except FileNotFoundError:
                 self.exit_img = None

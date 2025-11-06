@@ -31,6 +31,11 @@ class CameraManager:
         try:
             if not self.is_opened:
                 self.camera = cv2.VideoCapture(self.camera_id)
+                
+                self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                
+                
                 if not self.camera.isOpened():
                     raise Exception(f"Không thể mở camera với ID {self.camera_id}")
                 self.is_opened = True

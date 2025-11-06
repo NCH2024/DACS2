@@ -29,8 +29,8 @@ class CameraConfig:
 @dataclass
 class ThresholdSecurity:
     face_recognition_threshold: float = 0.60
-    liveness_threshold: float = 0.20
-    smooth_factor: int = 5  
+    liveness_threshold: float = 0.40
+    smooth_factor: int = 5
 
 # --- PHẦN MỚI ---
 @dataclass
