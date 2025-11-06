@@ -952,8 +952,17 @@ class SwitchOption(ctk.CTkFrame):
             self.switch.deselect()
         self.switch.configure(text="BẬT" if value else "TẮT")
         
+import customtkinter as ctk
+
 class LoadingDialog(ctk.CTkToplevel):
-    def __init__(self, parent, message="Đang xử lý...", progress_color="#012C49", mode="determinate", height_progress=18):
+    def __init__(self, 
+                 parent, 
+                 message="Đang xử lý...", 
+                 progress_color="#012C49", 
+                 mode="determinate", 
+                 height_progress=18,
+                 temp_topmost_off: bool = False): # <-- THAM SỐ MỚI
+        
         super().__init__(parent)
         self.geometry("500x200")
         self.title("")
@@ -965,7 +974,7 @@ class LoadingDialog(ctk.CTkToplevel):
 
         # Luôn nằm trên cùng và modal
         self.attributes("-topmost", True)
-        self.grab_set()
+        self.grab_set() # <-- Đây cũng là một phần của vấn đề
 
         # Container
         self.container = ctk.CTkFrame(self, corner_radius=20, fg_color="white")
@@ -999,6 +1008,19 @@ class LoadingDialog(ctk.CTkToplevel):
 
         self.center_window(parent)
 
+        # <-- THÊM MỚI: Lên lịch tắt topmost sau 1 giây
+        if temp_topmost_off:
+            self.after(1000, self._disable_topmost)
+
+    def _disable_topmost(self):
+        """(Mới) Tắt chế độ luôn hiển thị trên cùng."""
+        try:
+            self.attributes("-topmost", False)
+            print("Đã tắt topmost.") # Thêm để debug
+        except Exception:
+            # Cửa sổ có thể đã bị hủy trước khi hàm này được gọi
+            pass
+
     def update_progress(self, value: float):
         """Cập nhật tiến trình cho determinate."""
         try:
@@ -1014,6 +1036,8 @@ class LoadingDialog(ctk.CTkToplevel):
                 self.progressbar.stop()
         except Exception:
             pass
+        
+        self.grab_release() # <-- Nhớ giải phóng grab
         self.destroy()
 
     def center_window(self, parent):
@@ -1021,7 +1045,6 @@ class LoadingDialog(ctk.CTkToplevel):
         x = parent.winfo_rootx() + (parent.winfo_width() // 2) - (self.winfo_width() // 2)
         y = parent.winfo_rooty() + (parent.winfo_height() // 2) - (self.winfo_height() // 2)
         self.geometry(f"+{x}+{y}")
-
 
 def resize_crop_to_fill(image, target_width, target_height):
     """Resize hình ảnh để *lấp đầy* khung mà không méo hình (giữ tỷ lệ), có thể bị cắt 2 bên"""

@@ -33,7 +33,8 @@ def connect_db():
             'user': config.database.username,
             'password': config.database.password,
             'database': config.database.database_name,
-            'port': config.database.port
+            'port': config.database.port,
+            'ssl_disabled': False
         }
     except Exception as e:
         print(f"Không thể đọc DB config từ app_config: {e}")
@@ -189,11 +190,15 @@ def get_thongbao():
     for row in cursor.fetchall():
         thongbao_id, title, content, ngay_dang, image_blob = row
         # Chuyển ảnh blob thành PIL Image
+        image = None
         if image_blob:
-            image = Image.open(io.BytesIO(image_blob))
+            try:
+                image = Image.open(io.BytesIO(image_blob))
+            except Exception as e:
+                print(f"Lỗi khi mở ảnh thông báo (ID: {thongbao_id}): {e}. Bỏ qua ảnh này.")
         else:
             image = None
-        results.append((thongbao_id, title, content, ngay_dang, image))
+            results.append((thongbao_id, title, content, ngay_dang, image))
 
     cursor.close()
     conn.close()
@@ -269,7 +274,7 @@ def get_subject_detail_from_hocphan(subject_name):
     cursor = conn.cursor(buffered=True)
     cursor.execute("""
         SELECT MaHocPhan, TenHocPhan, SoTinChi, TongSoTiet
-        FROM HocPhan
+        FROM hocphan
         WHERE TenHocPhan = %s
         LIMIT 1
     """, (subject_name,))
@@ -346,7 +351,7 @@ def get_sessions_of_date(username, ten_hocphan, ngay):
         return []
 
     cursor.execute("""
-        select concat(Min(ct.MaTiet), "-", Max(ct.MaTiet))
+        select concat(Min(ct.MaTiet), '-' , Max(ct.MaTiet))
         from taikhoan tk
         join giangvien gv on tk.MaGV = gv.MaGV
         join lophocphan lhp on lhp.MaGV = gv.MaGV
@@ -1732,7 +1737,7 @@ def delete_buoihoc(mabuoi):
             pass
 
 def get_master_schedule():
-    query = "SELECT * FROM view_ChiTietLichHoc_v2 ORDER BY NgayHoc, TietBatDau"
+    query = "SELECT * FROM view_chitietlichhoc_v2 ORDER BY NgayHoc, TietBatDau"
     return _execute_query(query, fetch_all=True)
 
 # ----- LẤY DỮ LIỆU COMBOBOX -----

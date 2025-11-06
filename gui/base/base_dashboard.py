@@ -61,7 +61,7 @@ class DashboardView(BaseView):
 
         # Thêm hình ảnh logo
         base_path = get_base_path()
-        self.bg_ctkimage = ImageProcessor(os.path.join(base_path, "resources/images/dnc.png")) \
+        self.bg_ctkimage = ImageProcessor(os.path.join(base_path, "resources","images","dnc.png")) \
                                 .crop_to_aspect(150, 150) \
                                 .resize(150, 150) \
                                 .to_ctkimage(size=(150, 150))

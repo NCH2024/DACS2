@@ -75,6 +75,7 @@ class MainWindow(BaseView):
                                                   justify="center", bg_color="transparent",
                                                   width=400, height=80, text_color="white")
         self.tittle_second_label.place(relx=0.5, rely=0.9, anchor="center")
+        
 
     # --- HÀM MỚI ĐỂ XỬ LÝ ĐĂNG NHẬP THỦ CÔNG ---
     def start_login_process(self):
@@ -98,7 +99,7 @@ class MainWindow(BaseView):
             self.username_entry.focus_set()
         else:
             # 2. Nếu đúng, hiển thị dialog và bắt đầu tải dashboard trong luồng nền
-            loading_dialog = LoadingDialog(self.master, "Đăng nhập thành công, đang tải...", mode="indeterminate")
+            loading_dialog = LoadingDialog(self.master, "Đăng nhập thành công, đang tải...", mode="indeterminate", temp_topmost_off=True)
             self.master.withdraw()
             self.master.update_idletasks()
     
@@ -197,18 +198,21 @@ def runapp(config):
     # --- CẢI TIẾN: Logic hiển thị cửa sổ và loading dialog ---
     loading_dialog = None
 
+
     def show_login_window():
         root.deiconify() 
         root.lift()
         root.focus_force()
         root.attributes('-topmost', True)
         root.after(100, lambda: root.attributes('-topmost', False))
+        
+
 
     if username and password:
         # --- CẢI TIẾN LOGIC HIỂN THỊ ---
         # 1. Tạo LoadingDialog trước. Cửa sổ root sẽ tự động hiện ra do có Toplevel con,
         # nhưng vì nó trống và LoadingDialog nằm trên nên sẽ không thấy.
-        loading_dialog = LoadingDialog(root, "Đang Đăng Nhập", mode="indeterminate", height_progress=20)
+        loading_dialog = LoadingDialog(root, "Đang Đăng Nhập", mode="indeterminate", height_progress=20, temp_topmost_off=True)
         root.withdraw() # Đảm bảo cửa sổ chính được ẩn ngay cả khi CTkToplevel tự động hiển thị nó
         # 2. Ép Tkinter phải vẽ LoadingDialog ngay lập tức.
         root.update_idletasks()

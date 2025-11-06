@@ -171,7 +171,11 @@ class AdminNotice(BaseFrame):
             if isinstance(image_source, Image.Image):
                 img_to_display_pil = image_source
             elif isinstance(image_source, bytes) and image_source:
-                img_to_display_pil = Image.open(BytesIO(image_source))
+                try:
+                    img_to_display_pil = Image.open(BytesIO(image_source))
+                except Exception as e:
+                    print(f"Lỗi khi mở ảnh từ BLOB để preview: {e}. Hiển thị ảnh rỗng.")
+                    img_to_display_pil = None # Đặt về None để không hiển thị ảnh lỗi
             else:
                 self._remove_image()
                 return
