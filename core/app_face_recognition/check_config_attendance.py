@@ -123,7 +123,7 @@ class CheckConfigAttendance(ctk.CTkFrame):
                 model_path=os.path.join(base_path, "models"),
                 sounds_path=os.path.join(base_path, "resources", "sound"),
                 liveness_model_path=os.path.join(base_path, "models", "AntiSpoofing_bin_1.5_128.onnx"),
-                app_config=self.appconfig, 
+                app_config=self.appconfig,
                 dialog=self.loading_dialog 
             )
 
