@@ -2,6 +2,11 @@ import customtkinter as ctk
 import threading
 from gui.base.utils import *
 from core.database import *
+from core.utils import get_base_path
+from PIL import Image
+import os
+
+
 class BasePopupWindow(ctk.CTkFrame):
     def __init__(self, master=None, config=None, **kwargs):
         super().__init__(master, **kwargs)
@@ -33,7 +38,8 @@ class BasePopupWindow(ctk.CTkFrame):
         self.label_title.grid(row=0, column=0, pady=(10,10), padx=(10,0), sticky="nw")
 
         try:
-            exit_img = Image.open("resources/images/cross.png")
+            base_path = get_base_path()
+            exit_img = Image.open(os.path.join(base_path,"resources/images/cross.png"))
             self.exit_img = ImageProcessor(exit_img)\
                          .crop_to_aspect(80, 80) \
                          .resize(20, 20) \

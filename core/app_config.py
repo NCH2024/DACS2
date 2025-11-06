@@ -32,19 +32,30 @@ class ThresholdSecurity:
     liveness_threshold: float = 0.20
     smooth_factor: int = 5  
 
+# --- PHẦN MỚI ---
+@dataclass
+class DatabaseConfig:
+    host: str = "localhost"
+    port: int = 3306
+    username: str = "root"
+    password: str = "1234"
+    database_name: str = "da2"
+# --- KẾT THÚC PHẦN MỚI ---
+
 @dataclass
 class AppConfig:
     login_info: LoginInfo
     camera_config: CameraConfig
     threshold_security: ThresholdSecurity
-    
+    database: DatabaseConfig 
 
-# Hàm chuyển từ dict -> dataclass (Không đổi)
+# Hàm chuyển từ dict -> dataclass (Đã cập nhật)
 def dict_to_config(data: dict) -> AppConfig:
     return AppConfig(
         login_info=LoginInfo(**data.get("login_info", {})),
         camera_config=CameraConfig(**data.get("camera_config", {})),
         threshold_security=ThresholdSecurity(**data.get("threshold_security", {})),
+        database=DatabaseConfig(**data.get("database", {})) 
     )
 
 # Hàm load config TỪ AppData (Đã chỉnh sửa)
@@ -61,7 +72,8 @@ def load_config() -> AppConfig:
                 face_recognition_threshold=0.60,
                 liveness_threshold=0.20,
                 smooth_factor=5
-            )
+            ),
+            database=DatabaseConfig()
         )
         save_config(default_config) # Lưu file mặc định
         return default_config
@@ -75,23 +87,23 @@ def load_config() -> AppConfig:
             # Kiểm tra và gán giá trị mặc định nếu các key bị thiếu
             if not hasattr(config, 'login_info') or config.login_info.username is None:
                 config.login_info = LoginInfo()
-                
             if not hasattr(config, 'camera_config') or config.camera_config.selected_camera_id is None:
                 config.camera_config = CameraConfig()
-                
             if not hasattr(config, 'threshold_security') or config.threshold_security.face_recognition_threshold is None:
                 config.threshold_security = ThresholdSecurity()
-
+            if not hasattr(config, 'database') or config.database.host is None:
+                config.database = DatabaseConfig() 
+                
             return config
     except Exception as e:
         print(f"Lỗi khi load config: {e}. Đang trả về config mặc định.")
-        # Nếu file config bị lỗi, trả về mặc định
+        # Nếu file config bị lỗi, trả về config mặc định hoàn chỉnh
         return AppConfig(
             login_info=LoginInfo(), 
             camera_config=CameraConfig(), 
-            threshold_security=ThresholdSecurity()
+            threshold_security=ThresholdSecurity(),
+            database=DatabaseConfig() 
         )
-
 
 # Hàm lưu config VÀO AppData (Đã chỉnh sửa)
 def save_config(config: AppConfig):

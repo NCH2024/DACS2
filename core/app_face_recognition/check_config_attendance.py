@@ -112,31 +112,22 @@ class CheckConfigAttendance(ctk.CTkFrame):
 
     def load_models_and_controller(self):
         try:
-            def progress_callback(progress, message):
-                self.after_idle(self.update_loading_dialog, progress, message)
+            # Import ở đây để tránh lỗi import vòng
+            from core.utils import get_base_path
+            import os
 
-            # --- 1. Tải model trước ---
-            from core.app_face_recognition.face_recognition_model import FaceRecognitionModel
-            tmp = FaceRecognitionModel(
-                sounds_path="resources/sound",
-                model_path="models",
-                liveness_model_path="models/AntiSpoofing_bin_1.5_128.onnx",
-                similarity_threshold=0.55,
-                threshold_security=0.75,
-                smooth_factor=5,
-            )
+            base_path = get_base_path()
 
-            # Gọi _ensure_models (có thể tải lần đầu)
-            tmp._ensure_models(dialog=self.loading_dialog)
-
-            # --- 2. Sau khi tải xong, tạo controller ---
+            # Khởi tạo MainController 1 LẦN DUY NHẤT
             self.controller = MainController(
-                model_path="models",
-                sounds_path="resources/sound",
-                liveness_model_path="models/AntiSpoofing_bin_1.5_128.onnx",
-                app_config=self.appconfig,
+                model_path=os.path.join(base_path, "models"),
+                sounds_path=os.path.join(base_path, "resources", "sound"),
+                liveness_model_path=os.path.join(base_path, "models", "AntiSpoofing_bin_1.5_128.onnx"),
+                app_config=self.appconfig, 
+                dialog=self.loading_dialog 
             )
 
+            # Controller đã tự load xong, giờ chỉ việc báo hoàn thành
             self.after_idle(self.on_loading_complete)
 
         except Exception as e:

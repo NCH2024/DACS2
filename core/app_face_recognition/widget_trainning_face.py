@@ -9,6 +9,8 @@ from core.app_face_recognition.camera_setup import CameraManager
 import threading
 import pygame
 import cv2
+from core.utils import get_base_path
+import os
 
 class WidgetTranningFace(ctk.CTkFrame):
     def __init__(self, master=None, username=None, controller=None, config=None, **kwargs):
@@ -21,9 +23,10 @@ class WidgetTranningFace(ctk.CTkFrame):
         self.is_camera_open = False
         self.toplevel_window = None
 
-        self.sound_error = "./resources/sound/error.wav"
-        self.sound_fail = "./resources/sound/fail.wav"
-        self.sound_success = "./resources/sound/success.wav"
+        base_path = get_base_path()
+        self.sound_error = os.path.join(base_path, "./resources/sound/error.wav")
+        self.sound_fail = os.path.join(base_path, "./resources/sound/fail.wav")
+        self.sound_success = os.path.join(base_path, "./resources/sound/success.wav")
 
 
         self.configure(fg_color="white")
@@ -64,7 +67,7 @@ class WidgetTranningFace(ctk.CTkFrame):
         self.widget_student_image = ctk.CTkFrame(self.widget_student, fg_color="transparent")
         self.widget_student_image.grid(row=1, column=0, padx=(2,0), pady=2, sticky="nsew")
 
-        self.bg_ctkimage = ImageProcessor("resources/images/avatar_default.jpeg") \
+        self.bg_ctkimage = ImageProcessor(os.path.join(base_path,"resources/images/avatar_default.jpeg")) \
                                         .crop_to_aspect(160, 180) \
                                         .resize(160, 180) \
                                         .to_ctkimage(size=(160,180))
@@ -357,7 +360,7 @@ class WidgetTranningFace(ctk.CTkFrame):
             self.set_default_image()
             
     def set_default_image(self):
-        self.bg_ctkimage = ImageProcessor("resources/images/avatar_default.jpeg") \
+        self.bg_ctkimage = ImageProcessor(os.path.join(get_base_path(),"resources","images","avatar_default.jpeg")) \
                                         .crop_to_aspect(160, 180) \
                                         .resize(160, 180) \
                                         .to_ctkimage(size=(160, 180))

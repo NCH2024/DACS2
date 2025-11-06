@@ -1,15 +1,16 @@
 from tkinter import messagebox
 from gui.base.base_view import BaseView
 import customtkinter as ctk
-from gui.base.utils import ImageProcessor, LoadingDialog # <<< THÊM IMPORT
+from gui.base.utils import ImageProcessor, LoadingDialog
 import tkinter as tk
 import core.database 
 from core.utils import bcrypt_password, check_password
 from gui.user.dashboard_lecturer import LecturerDashboard
 from gui.admin.dashboard_admin import AdminDashboard
 from core.app_config import load_config, save_config
-import threading # <<< THÊM IMPORT
-
+import threading 
+from core.utils import get_base_path 
+import os
 
 class MainWindow(BaseView):
     def __init__(self, master, config):
@@ -23,7 +24,8 @@ class MainWindow(BaseView):
         self.content = ctk.CTkFrame(self, corner_radius=0, fg_color="#05243F")
         self.content.pack(side="right", fill="both", expand=True)
         
-        self.bg_ctkimage = ImageProcessor("resources/images/bg_main_window.png") \
+        base_path = get_base_path()
+        self.bg_ctkimage = ImageProcessor(os.path.join(base_path, "resources","images","bg_main_window.png")) \
                                 .crop_to_aspect(1280, 720) \
                                 .resize(1280, 720) \
                                 .to_ctkimage(size=(1280,720))
@@ -175,7 +177,8 @@ def runapp(config):
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("green")
     root = ctk.CTk()
-    root.iconbitmap("icoapp.ico")
+    base_path = get_base_path()
+    root.iconbitmap(os.path.join(base_path, "icoapp.ico"))
     
     # --- THIẾT LẬP CỬA SỔ LOGIN BAN ĐẦU ---
     root.title("PHẦN MỀM ĐIỂM DANH")

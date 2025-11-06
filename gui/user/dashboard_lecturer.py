@@ -7,7 +7,10 @@ from gui.user.lecturer_settings import LecturerSettings
 from gui.user.lecturer_statistical import LecturerStatistical
 import customtkinter as ctk
 import core.database as Db  
+from core.utils import get_base_path
+import os   
 import threading
+
 
 class LecturerDashboard(DashboardView):
     """Tạo giao diện dashboard cho giảng viên."""
@@ -92,7 +95,9 @@ class LecturerDashboard(DashboardView):
         if self.slideshow and self.slideshow.winfo_exists():
             self.slideshow.destroy()
             
-        self.slideshow = ImageSlideshow(self.content, image_folder="resources/slideshow/user", size=(1024, 768), delay=3000)
+        slide_path = os.path.join(get_base_path(), "resources","slideshow","user")
+           
+        self.slideshow = ImageSlideshow(self.content, image_folder=slide_path, size=(1024, 768), delay=3000)
         self.slideshow.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         self.slideshow.tkraise() # Đưa slideshow lên trên cùng
 

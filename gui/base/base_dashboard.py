@@ -12,6 +12,9 @@ import customtkinter as ctk
 from gui.base.base_view import BaseView
 from gui.base.utils import ImageProcessor
 from core.app_config import save_config, load_config
+from core.utils import get_base_path
+import os
+
 
 class DashboardView(BaseView):
     """
@@ -57,7 +60,8 @@ class DashboardView(BaseView):
         self.grid_rowconfigure(0, weight=1)            
 
         # Thêm hình ảnh logo
-        self.bg_ctkimage = ImageProcessor("resources/images/dnc.png") \
+        base_path = get_base_path()
+        self.bg_ctkimage = ImageProcessor(os.path.join(base_path, "resources/images/dnc.png")) \
                                 .crop_to_aspect(150, 150) \
                                 .resize(150, 150) \
                                 .to_ctkimage(size=(150, 150))

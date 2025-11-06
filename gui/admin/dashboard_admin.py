@@ -2,6 +2,8 @@ from gui.base.base_dashboard import DashboardView
 from gui.base.utils import ImageSlideshow
 import customtkinter as ctk
 import core.database as Db
+from core.utils import get_base_path
+import os
 import threading
 from gui.admin.admin_general import AdminGeneral
 from gui.admin.admin_students_manager import AdminStudentsManager
@@ -70,8 +72,10 @@ class AdminDashboard(DashboardView):
         """Tạo và hiển thị slideshow."""
         if self.slideshow and self.slideshow.winfo_exists():
             self.slideshow.destroy()
-            
-        self.slideshow = ImageSlideshow(self.content, image_folder="resources/slideshow/admin", size=(1024, 768), delay=3000)
+          
+        slide_path = os.path.join(get_base_path(), "resources","slideshow","admin")
+       
+        self.slideshow = ImageSlideshow(self.content, image_folder=slide_path, size=(1024, 768), delay=3000)
         self.slideshow.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
         self.slideshow.tkraise()
         

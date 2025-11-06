@@ -82,6 +82,7 @@ class FaceRecognitionModel:
         self._create_executor()
 
         # sounds
+        
         self.sound_success = os.path.join(self.sounds_path, "success.wav")
         self.sound_fail = os.path.join(self.sounds_path, "fail.wav")
 

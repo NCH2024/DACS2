@@ -7,7 +7,7 @@ import threading
 
 
 class MainController:
-    def __init__(self, model_path, sounds_path, liveness_model_path, app_config):
+    def __init__(self, model_path, sounds_path, liveness_model_path, app_config, dialog=None):
         self.db = Db
         self.AppConfig = app_config
         self.threshold_security = self.AppConfig.threshold_security.liveness_threshold
@@ -21,6 +21,7 @@ class MainController:
             model_path=model_path, 
             liveness_model_path=liveness_model_path
          )
+        self.model._ensure_models(dialog=dialog)
         
         self.face_model._ensure_models() 
         

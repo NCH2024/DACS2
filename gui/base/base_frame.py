@@ -1,5 +1,8 @@
 import customtkinter as ctk 
 from gui.base.utils import *
+from core.utils import get_base_path
+from PIL import Image
+import os
 
 
 class BaseFrame(ctk.CTkFrame):
@@ -29,7 +32,8 @@ class BaseFrame(ctk.CTkFrame):
         self.label_title.grid(row=0, column=0, pady=(0,5), padx=(10,0), sticky="nw")
         
         try:
-            exit_img = Image.open("resources/images/cross.png")
+            base_path = get_base_path()
+            exit_img = Image.open(os.path.join(base_path, "resources/images/cross.png"))
             self.exit_img = ImageProcessor(exit_img)\
                          .crop_to_aspect(80, 80) \
                          .resize(20, 20) \

@@ -5,7 +5,8 @@ from io import BytesIO
 import tkinter as tk
 from PIL.Image import DecompressionBombError
 import threading
-
+from core.utils import get_base_path
+import sys
 
 
 class ImageProcessor:

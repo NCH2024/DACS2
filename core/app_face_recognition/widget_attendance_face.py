@@ -7,6 +7,8 @@ from core.app_face_recognition.camera_setup import CameraManager
 from core.app_face_recognition.widget_camera import WidgetCamera
 from gui.base.utils import *
 import datetime
+from core.utils import get_base_path
+import os
 from core.database import *
 
 class WidgetAttendanceFace(ctk.CTkFrame):
@@ -61,7 +63,8 @@ class WidgetAttendanceFace(ctk.CTkFrame):
             self.label_title.set_text(text="ĐIỂM DANH - Trang đang lỗi vui lòng không điểm danh")
         
         try:
-            exit_img = Image.open("resources/images/cross.png")
+            base_path = get_base_path()
+            exit_img = Image.open(os.path.join(base_path,"resources","images","cross.png"))
             self.exit_img = ImageProcessor(exit_img)\
                          .crop_to_aspect(80, 80) \
                          .resize(20, 20) \

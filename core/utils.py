@@ -24,14 +24,26 @@ def bcrypt_password(password: str) -> str:
 def check_password(plain_password: str, bcrypt_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode(), bcrypt_password.encode())
 
+
 def get_base_path():
-    """ Lấy đường dẫn gốc của ứng dụng, hoạt động cho cả script và file .exe đã đóng gói. """
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        # Chạy từ file .exe (PyInstaller)
+    """ 
+    Lấy đường dẫn gốc của ứng dụng (thư mục DACS2-...).
+    Hoạt động cho cả script .py và file .exe đã đóng gói. 
+    """
+    if hasattr(sys, '_MEIPASS'):
+        # Chạy từ file .exe (PyInstaller --onefile)
+        # _MEIPASS là thư mục tạm được giải nén
         return sys._MEIPASS
+    elif getattr(sys, 'frozen', False):
+        # Chạy từ file .exe (PyInstaller --onedir)
+        # sys.executable là đường dẫn đến file .exe
+        return os.path.dirname(sys.executable)
     else:
         # Chạy từ script .py
-        return os.path.abspath(os.path.dirname(__file__))
+        # __file__ trỏ đến core/utils.py
+        # os.path.dirname(__file__) trỏ đến .../core
+        # os.path.join(..., "..") sẽ trỏ lên thư mục gốc .../DACS2-....
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 def convert_to_mysql_date(date_str):
     """Chuyển từ 'DD/MM/YYYY' sang 'YYYY-MM-DD'."""

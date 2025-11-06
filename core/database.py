@@ -17,25 +17,56 @@ import io
 import json
 import pickle
 import numpy as np
+import core.app_config as AppConfig
 
-DB_CONFIG = {
-        'host': 'localhost',
-        'user': 'root',
-        'password': '1234',
-        'database': 'da2'
-        }
 
 def connect_db():
     """
     Kết nối đến cơ sở dữ liệu MySQL.
-    Trả về một kết nối vào cơ sở dữ liệu.
+    (Đã cập nhật để đọc từ config.json trong AppData)
     """
+    # Tải config mỗi lần gọi
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
+        config = AppConfig.load_config()
+        db_settings = {
+            'host': config.database.host,
+            'user': config.database.username,
+            'password': config.database.password,
+            'database': config.database.database_name,
+            'port': config.database.port
+        }
+    except Exception as e:
+        print(f"Không thể đọc DB config từ app_config: {e}")
+        return None
+
+    try:
+        connection = mysql.connector.connect(**db_settings)
         return connection
     except mysql.connector.Error as err:
-        print(f"Error: {err}")
+        # In lỗi cụ thể để người dùng biết
+        print(f"Lỗi kết nối CSDL: {err}")
+        print(f"Hãy kiểm tra file config.json trong %APPDATA%/DACS2_App")
         return None
+    
+# DB_CONFIG = {
+#         'host': 'localhost',
+#         'user': 'root',
+#         'password': '1234',
+#         'database': 'da2'
+#         }
+
+
+# def connect_db():
+#     """
+#     Kết nối đến cơ sở dữ liệu MySQL.
+#     Trả về một kết nối vào cơ sở dữ liệu.
+#     """
+#     try:
+#         connection = mysql.connector.connect(**DB_CONFIG)
+#         return connection
+#     except mysql.connector.Error as err:
+#         print(f"Error: {err}")
+#         return None
     
     
 # ĐOẠN KẾT NỐI DƯỚI ĐÂY ĐANG THỬ NGHIỆM CHO CLOUD DATABASE AIVEN (Do vẫn còn lỗi nên chưa áp dụng thực tế)
